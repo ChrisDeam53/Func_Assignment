@@ -33,48 +33,33 @@
 (require '[clojure.string :as str])
 
 (def letter-hash-map
-  {:A ".-", :B "-...", :C "-.-.", :D "-..", :E ".", :F "..-.", :G "--.", :H "....",
-   :I "..", :J ".---", :K "-.-", :L ".-..", :M "--", :N "-.", :O "---", :P "	.--.",
-   :Q "--.-", :R ".-.", :S "	...", :T "-", :U "..-", :V "...-", :W ".--", :X "-..-",
-   :Y "-.--", :Z "--.."})
-
-(def number-hash-map
-  {:0 "-----", :1 ".----", :2 "..---", :3 "...--", :4 "....-", :5 "	.....",
-   :6 "-....", :7 "--...", :8 "---..", :9 "	----."})
+  "Define strings to their respective Morse counterparts."
+  {"A" ".-", "B" "-...", "C" "-.-.", "D" "-..", "E" ".", "F" "..-.", "G" "--.", "H" "....",
+   "I" "..", "J" ".---", "K" "-.-", "L" ".-..", "M" "--", "N" "-.", "O" "---", "P" "	.--.",
+   "Q" "--.-", "R" ".-.", "S" "	...", "T" "-", "U" "..-", "V" "...-", "W" ".--", "X" "-..-",
+   "Y" "-.--", "Z" "--..", "0" "-----", "1" ".----", "2" "..---", "3" "...--", "4" "....-",
+   "5" ".....", "6" "-....", "7" "--...", "8" "---..", "9" "----.", " " "......."})
 
 ;; TODO: ',', and '(' and ')' and ':' and ';' and ' " ' and '@' won't work. Ask how I can add these.
-(def punctuation-hash-map
-  {:. ".-.-.-", :? "..--..", :' ".----.", :! "-.-.--",
-   :/ "-..-.", :& ".-...", := "-...-", :+ ".-.-.", :- "-....-",
-   :_ "..--.-", :$ "...-..-", :¿ "..-.-", :¡ "--...-"})
+;; (def punctuation-hash-map
+;;   {:. ".-.-.-", :? "..--..", :' ".----.", :! "-.-.--",
+;;    :/ "-..-.", :& ".-...", := "-...-", :+ ".-.-.", :- "-....-",
+;;    :_ "..--.-", :$ "...-..-", :¿ "..-.-", :¡ "--...-"})
 
-(defn string-to-morse [enteredString]
+(defn translate-character [currentCharacter]
+  "Performs the get method on the character found inside the letter-hash-map.
+   Arguments: currentCharacter - Individual Character in the string to perform the get method."
+  (get letter-hash-map currentCharacter))
+
+(defn get-character [enteredString]
   "TODO: This method.
    Arguments: enteredString - The string to be converted to its appropriate counterpart."
-  (let [returnedTranslation [78]]
-    ;; Use Regex to get each individual character, including spaces. Returns a vector.
-    (let [characterVector (str/split enteredString #"")]
-      (println characterVector)
-      (for [character characterVector]
-        (cond
-          (= "A" character)
-          (conj [returnedTranslation] 4)
-          (= "B" character)
-          (conj returnedTranslation 45)
-          ;; (get letter-hash-map ':character)
-          ;; (conj returnedTranslation (get letter-hash-map ':character))
-          ;; (println "AAAAAAAAAAAAAAAA")
-          ;; (= character nil)
-          ;; (get number-hash-map :character)
-          ;; (= character nil)
-          ;; (get punctuation-hash-map :character)
-          :else
-          (println "Unnacepted Character."))
-        )
-      (println returnedTranslation))))
-  
-;; (doseq [[key value] letter-hash-map] (println (format "%s is %s" key value)))
-;;   (println )
+    ;; Covert all characters to uppercase for uniformty.
+  (let [characterVectorUpper (str/upper-case enteredString)]
+        ;; Use Regex to get each individual character, including spaces. Returns a vector.
+    (let [characterVector (str/split characterVectorUpper #"")]
+        ;;   (map translate-character characterVector)
+      (map translate-character characterVector))))
 
 
 (defn request-string-to-convert []
@@ -82,7 +67,7 @@
   (println "Please enter a valid ASCII string or Morse Code.")
   (flush)
   (let [enteredString (str (read-line))]
-    (string-to-morse enteredString)))
+    (println(get-character enteredString))))
 
 (defn func2 []
   (println "BBBBBBBBBBBB"))
@@ -110,7 +95,6 @@
   (println "Hello, World!")
   (println "Executing project:\n Author: Chris Deam")
   (initialise-project)
-
 )
 
 
