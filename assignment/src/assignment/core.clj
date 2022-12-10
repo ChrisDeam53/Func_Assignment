@@ -1,6 +1,7 @@
 (ns assignment.core
   (:gen-class) 
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [clojure.set :as cljSet]))
 
 ;; RUN CODE:
 ;; Alt+Enter
@@ -31,35 +32,42 @@
 ;; Seemingly useful resource: https://kimh.github.io/clojure-by-example/#about-this-page
 
 (require '[clojure.string :as str])
+(require '[clojure.set :as cljSet])
 
 (def letter-hash-map
   "Define strings to their respective Morse counterparts."
   {"A" ".-", "B" "-...", "C" "-.-.", "D" "-..", "E" ".", "F" "..-.", "G" "--.", "H" "....",
-   "I" "..", "J" ".---", "K" "-.-", "L" ".-..", "M" "--", "N" "-.", "O" "---", "P" "	.--.",
-   "Q" "--.-", "R" ".-.", "S" "	...", "T" "-", "U" "..-", "V" "...-", "W" ".--", "X" "-..-",
+   "I" "..", "J" ".---", "K" "-.-", "L" ".-..", "M" "--", "N" "-.", "O" "---", "P" ".--.",
+   "Q" "--.-", "R" ".-.", "S" "...", "T" "-", "U" "..-", "V" "...-", "W" ".--", "X" "-..-",
    "Y" "-.--", "Z" "--..", "0" "-----", "1" ".----", "2" "..---", "3" "...--", "4" "....-",
    "5" ".....", "6" "-....", "7" "--...", "8" "---..", "9" "----.", " " "......."})
 
-;; TODO: ',', and '(' and ')' and ':' and ';' and ' " ' and '@' won't work. Ask how I can add these.
-;; (def punctuation-hash-map
-;;   {:. ".-.-.-", :? "..--..", :' ".----.", :! "-.-.--",
-;;    :/ "-..-.", :& ".-...", := "-...-", :+ ".-.-.", :- "-....-",
-;;    :_ "..--.-", :$ "...-..-", :¿ "..-.-", :¡ "--...-"})
+(def morse-hash-map (cljSet/map-invert letter-hash-map))
 
-(defn translate-character [currentCharacter]
+(defn translate-character-to-morse [currentCharacter]
   "Performs the get method on the character found inside the letter-hash-map.
    Arguments: currentCharacter - Individual Character in the string to perform the get method."
   (get letter-hash-map currentCharacter))
+
+(defn translate-character-to-ascii [currentCharacter]
+  "Performs the get method on the character found inside the letter-hash-map.
+   Arguments: currentCharacter - Individual Character in the string to perform the get method."
+  (get morse-hash-map currentCharacter))
 
 (defn get-character [enteredString]
   "TODO: This method.
    Arguments: enteredString - The string to be converted to its appropriate counterpart."
     ;; Covert all characters to uppercase for uniformty.
   (let [characterVectorUpper (str/upper-case enteredString)]
-        ;; Use Regex to get each individual character, including spaces. Returns a vector.
-    (let [characterVector (str/split characterVectorUpper #"")]
-        ;;   (map translate-character characterVector)
-      (map translate-character characterVector))))
+    ;; Use Regex to get each individual character, including spaces. Returns a vector.
+    (if (or (= (get characterVectorUpper 0) \.) (= (get characterVectorUpper 0) \-))
+      (let [characterVector (str/split characterVectorUpper #"\s+")]
+        ;; String entered is Morse.
+        ;; Join all empty spaces between "A B" for example -> "AB".
+        (str/join "" (map translate-character-to-ascii characterVector)))
+      (let [characterVector (str/split characterVectorUpper #"")]
+        ;; String entered is ASCII.
+        (map translate-character-to-morse characterVector)))))
 
 
 (defn request-string-to-convert []
