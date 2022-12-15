@@ -40,14 +40,19 @@
    "I" "..", "J" ".---", "K" "-.-", "L" ".-..", "M" "--", "N" "-.", "O" "---", "P" ".--.",
    "Q" "--.-", "R" ".-.", "S" "...", "T" "-", "U" "..-", "V" "...-", "W" ".--", "X" "-..-",
    "Y" "-.--", "Z" "--..", "0" "-----", "1" ".----", "2" "..---", "3" "...--", "4" "....-",
-   "5" ".....", "6" "-....", "7" "--...", "8" "---..", "9" "----.", " " "......."})
+   "5" ".....", "6" "-....", "7" "--...", "8" "---..", "9" "----.", " " " "})
 
 (def morse-hash-map (cljSet/map-invert letter-hash-map))
 
 (defn translate-character-to-morse [currentCharacter]
   "Performs the get method on the character found inside the letter-hash-map.
    Arguments: currentCharacter - Individual Character in the string to perform the get method."
-  (get letter-hash-map currentCharacter))
+  (let [returnString (get letter-hash-map currentCharacter)]
+    (if (not= returnString " ")
+      ;; Append 3x spaces to the end of each morse character returned if not a space.
+      (str returnString "  ")
+      (str (get letter-hash-map currentCharacter) "  ")
+      )))
 
 (defn translate-character-to-ascii [currentCharacter]
   "Performs the get method on the character found inside the letter-hash-map.
