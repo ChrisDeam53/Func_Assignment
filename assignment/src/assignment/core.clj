@@ -40,7 +40,7 @@
    "I" "..", "J" ".---", "K" "-.-", "L" ".-..", "M" "--", "N" "-.", "O" "---", "P" ".--.",
    "Q" "--.-", "R" ".-.", "S" "...", "T" "-", "U" "..-", "V" "...-", "W" ".--", "X" "-..-",
    "Y" "-.--", "Z" "--..", "0" "-----", "1" ".----", "2" "..---", "3" "...--", "4" "....-",
-   "5" ".....", "6" "-....", "7" "--...", "8" "---..", "9" "----.", " " " "})
+   "5" ".....", "6" "-....", "7" "--...", "8" "---..", "9" "----.", " " "       "})
 
 (def morse-hash-map (cljSet/map-invert letter-hash-map))
 
@@ -48,15 +48,16 @@
   "Performs the get method on the character found inside the letter-hash-map.
    Arguments: currentCharacter - Individual Character in the string to perform the get method."
   (let [returnString (get letter-hash-map currentCharacter)]
-    (if (not= returnString " ")
+    (if (str/includes? returnString " ")
+      ;; Append 2x spaces to the end, totals to 7 spaces between words.
+      (str (str/trim (get letter-hash-map currentCharacter)) "   ")
       ;; Append 3x spaces to the end of each morse character returned if not a space.
-      (str returnString "  ")
-      (str (get letter-hash-map currentCharacter) "  ")
-      )))
+      (str returnString "  "))))
 
 (defn translate-character-to-ascii [currentCharacter]
   "Performs the get method on the character found inside the letter-hash-map.
    Arguments: currentCharacter - Individual Character in the string to perform the get method."
+  (println currentCharacter)
   (get morse-hash-map currentCharacter))
 
 (defn get-character [enteredString]
@@ -68,7 +69,7 @@
     (if (or (= (get characterVectorUpper 0) \.) (= (get characterVectorUpper 0) \-))
       (let [characterVector (str/split characterVectorUpper #"\s+")]
         ;; String entered is Morse.
-        ;; Join all empty spaces between "A B" for example -> "AB".
+        ;; Join all empty spaces between. Example: "A B" -> "AB".
         (str/join "" (map translate-character-to-ascii characterVector)))
       (let [characterVector (str/split characterVectorUpper #"")]
         ;; String entered is ASCII.
