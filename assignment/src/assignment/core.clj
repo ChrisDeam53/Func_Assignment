@@ -49,16 +49,28 @@
    Arguments: currentCharacter - Individual Character in the string to perform the get method."
   (let [returnString (get letter-hash-map currentCharacter)]
     (if (str/includes? returnString " ")
-      ;; Append 2x spaces to the end, totals to 7 spaces between words.
+      ;; Append 3x spaces to the end, totals to 7 spaces between words.
       (str (str/trim (get letter-hash-map currentCharacter)) "   ")
-      ;; Append 3x spaces to the end of each morse character returned if not a space.
+      ;; Append 2x spaces to the end of each morse character returned if not a space.
       (str returnString "  "))))
+
+(defn translate-character-and-space-to-ascii [currentString]
+  "Performs string manipulation to split two characters separated by a space.
+   Arguments: currentString - Individual String in the string to perform the get method."
+  ;; NOTE: Needs to return a string - java.lang.String
+  (let [firstCharacter (first currentString)]
+    (let [lastCharacter (last currentString)]
+      (str (get morse-hash-map firstCharacter) " " (get morse-hash-map lastCharacter)))))
 
 (defn translate-character-to-ascii [currentCharacter]
   "Performs the get method on the character found inside the letter-hash-map.
    Arguments: currentCharacter - Individual Character in the string to perform the get method."
-  (println currentCharacter)
-  (get morse-hash-map currentCharacter))
+  (if (str/includes? currentCharacter " ")
+    ;; String contains morse spaces (7x spaces).
+    (let [returnString (str/split currentCharacter #"       ")]
+      (translate-character-and-space-to-ascii returnString))
+    ;; No spaces. return as normal.
+    (get morse-hash-map currentCharacter)))
 
 (defn get-character [enteredString]
   "TODO: This method.
@@ -67,7 +79,8 @@
   (let [characterVectorUpper (str/upper-case enteredString)]
     ;; Use Regex to get each individual character, including spaces. Returns a vector.
     (if (or (= (get characterVectorUpper 0) \.) (= (get characterVectorUpper 0) \-))
-      (let [characterVector (str/split characterVectorUpper #"\s+")]
+      ;; (let [characterVector (str/split characterVectorUpper #"\s+")]
+      (let [characterVector (str/split characterVectorUpper #"\s+(?!\s{3})(?<!\s{4})")]
         ;; String entered is Morse.
         ;; Join all empty spaces between. Example: "A B" -> "AB".
         (str/join "" (map translate-character-to-ascii characterVector)))
@@ -75,6 +88,13 @@
         ;; String entered is ASCII.
         (map translate-character-to-morse characterVector)))))
 
+
+;; \s+(?!\s{3})(?<!\s{4})
+;; \s+(?!\s{3})(?<!\s{4})/g
+;; \(?<!) {3} (?!)
+
+;; Hello World
+;; ....   .   .-..   .-..   ---       .--   ---   .-.   .-..   -..
 
 (defn request-string-to-convert []
   "Accepts user input & calls conversion method. Invokes [[string-to-morse]]."
