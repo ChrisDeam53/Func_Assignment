@@ -116,7 +116,22 @@
 ;; NOTE: Uses the "Legacy" data for: 1772toDate, 2019, 2020, 2021 & 2022 text files.
 ;; /****************************************************************************************/
 
-(def warmest-day-each-month [])
+(def months-map
+  "Define each month to a value."
+  { 3 "January", 4 "February", 5 "March", 6 "April", 7 "May", 8 "June", 9 "July",
+   10 "August", 11 "September", 12 "October", 13 "November", 14 "December"})
+
+;; Use an "Atom" as a counter for the current day.
+(def current-day
+  "Stores the current day."
+  (atom 0))
+
+;; Use an "Atom" as a counter for the current year.
+
+(def warmest-day-each-month
+  "Hash-Map containing a {Month: {Day Temperature} }"
+  { 1 {0 0}, 2 {0 0}, 3 {0 0}, 4 {0 0}, 5 {0 0}, 6 {0 0}, 7 {0 0}, 8 {0 0},
+   9 {0 0}, 10 {0 0}, 11 {0 0}, 12 {0 0}})
 
 (def warmest-year "")
 
@@ -128,22 +143,57 @@
 
 (def instance-of-month-with-smallest-variation-from-mean "")
 
-(defn check-warmest-day-for-each-month
-  "TODO"
-  [enteredMonth temperature]
-  ;; Perhaps use pattern matching
-  )
+
+;; 1.	Find the warmest day for each calendar month 
+;; NOTE: External sources (non-Clojure documentation) have been referenced.
+;; REFERENCE: https://stackoverflow.com/questions/28408743/how-do-you-destructure-a-map-into-key-value-pairs-without-knowing-the-keys-in-cl
+;; ^ Reference used: Post by Thumbnail - Answered Feb 9, 2015 at 11:53.
+;; For JAN -> 45, Day 10
+;; January = 3 (passed in)
+(defn find-warmest-day-in-month
+  "TODO:"
+  [currentDay currentMonth currentTemperature]
+  (let [mappedMonth (get warmest-day-each-month (- currentMonth 2))]
+    (println "Mapped Month: " mappedMonth)
+    (if (not= mappedMonth nil)
+      (dorun (map (fn [[mappedMonthDay mappedMonthTemp]]
+                    (println "MappedMonthTemp: " mappedMonthTemp)
+                    (if (> currentTemperature mappedMonthTemp)
+                      (println "Greater than!"))
+                    (println "Day: " mappedMonthDay "Temperature: " mappedMonthTemp))
+                  mappedMonth)))))
+
+;; 2.	Find the warmest and coldest years.
+
+;; 3.	Find the mean temperature for each calendar month
+;; (the average for all Mays, for example) and the instance
+;; of each month that has the greatest and smallest variation
+;; from that mean.
 
 (defn set-data
   "DOING"
   [currentPos currentValue]
-  (println currentPos)
-  (println "CURRENT VALUE INT:")
-  (println (Integer/parseInt (apply str (take 6 currentValue))))
-  
+  ;; (println currentPos)
+
+  (if (= currentPos 1)
+    ;; Year Column
+    (println "Current Year:" (Integer/parseInt (apply str (take 6 currentValue)))))
+  (if (= currentPos 2)
+    ;; Day column
+    (cond
+      (not= current-day 31)
+      ;; Day Column is <= 31
+      (swap! current-day inc)
+      (= current-day 31)
+      ;; Else day is 31
+      ;; Sets the value of atom to newval without regard for the current value. Returns newval.
+      (reset! current-day 1)))
+    ;; (println "Current Day:" (Integer/parseInt (apply str (take 6 currentValue)))))
   (if (> currentPos 2)
-    (check-warmest-day-for-each-month currentPos currentValue))
-  )
+    ;; Month Column
+    (println "Current Month:" (get months-map currentPos) "Data: " currentValue))
+  (println "Current Day: " @current-day)
+  (find-warmest-day-in-month @current-day currentPos (Integer/parseInt (apply str currentValue))))
 
 (defn check-line-data-1772
   "Obtains data from the line.
@@ -155,6 +205,11 @@
       (println numberLine)
       (loop [currentPos 1 currentData numberLine]
         ;; Loop through each character in the string.
+        ;; IDEA: Use a LET for Year/Day -> Pass to other methods if:
+        ;; currentTemp > oldTemp, then note the Year/Day/Month of that
+        ;; I.E. If currentPos = 1 -> Assign that as curernt year
+        ;; If currentPos = 2 -> Assign that as current day
+        ;; Other numbers are used as months -> 3-15 (Jan-Dec)
         ;; Default is 15
         (when (< currentPos 15)
           (let [currentValue (take 1 currentData)]
