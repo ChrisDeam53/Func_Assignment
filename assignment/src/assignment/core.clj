@@ -127,6 +127,9 @@
   (atom 0))
 
 ;; Use an "Atom" as a counter for the current year.
+(def current-year
+  "Stores the current year."
+  (atom 1772))
 
 (def warmest-day-each-month
   "Hash-Map containing a {Month: {Day Temperature} }"
@@ -144,37 +147,44 @@
 (def instance-of-month-with-smallest-variation-from-mean "")
 
 
+(defn update-current-map
+  "Updates the current daily map key and then the value of the KVP."
+  [mappedMonth mappedMonthDay currentDay currentTemperature]
+  (let [updatedMap (cljSet/rename-keys mappedMonth {mappedMonthDay, currentDay})]
+    (assoc updatedMap currentDay currentTemperature)))
+
 ;; 1.	Find the warmest day for each calendar month 
 ;; NOTE: External sources (non-Clojure documentation) have been referenced.
 ;; REFERENCE: https://stackoverflow.com/questions/28408743/how-do-you-destructure-a-map-into-key-value-pairs-without-knowing-the-keys-in-cl
-;; ^ Reference used: Post by Thumbnail - Answered Feb 9, 2015 at 11:53.
+;; ^ Reference used: Post by Thumbnail - Answered Feb 9, 2015 at 11:53. (Used from map to mappedMonth)
 ;; For JAN -> 45, Day 10
-;; January = 3 (passed in)
 (defn find-warmest-day-in-month
   "TODO:"
   [currentDay currentMonth currentTemperature]
   (let [mappedMonth (get warmest-day-each-month (- currentMonth 2))]
-    (println "Mapped Month: " mappedMonth)
     (if (not= mappedMonth nil)
-      (dorun (map (fn [[mappedMonthDay mappedMonthTemp]]
-                    (println "MappedMonthTemp: " mappedMonthTemp)
+      (map (fn [[mappedMonthDay mappedMonthTemp]]
                     (if (> currentTemperature mappedMonthTemp)
-                      (println "Greater than!"))
-                    (println "Day: " mappedMonthDay "Temperature: " mappedMonthTemp))
-                  mappedMonth)))))
+                      (update-current-map mappedMonth mappedMonthDay currentDay currentTemperature)))
+                  mappedMonth))))
 
 ;; 2.	Find the warmest and coldest years.
+(defn find-warmest-and-coldest-year
+  "TODO"
+  []
+  )
 
 ;; 3.	Find the mean temperature for each calendar month
 ;; (the average for all Mays, for example) and the instance
 ;; of each month that has the greatest and smallest variation
 ;; from that mean.
+(defn find-mean-temperature-per-month
+"TOOD"
+  [])
 
 (defn set-data
   "DOING"
   [currentPos currentValue]
-  ;; (println currentPos)
-
   (if (= currentPos 1)
     ;; Year Column
     (println "Current Year:" (Integer/parseInt (apply str (take 6 currentValue)))))
@@ -185,37 +195,81 @@
       ;; Day Column is <= 31
       (swap! current-day inc)
       (= current-day 31)
-      ;; Else day is 31
-      ;; Sets the value of atom to newval without regard for the current value. Returns newval.
+      ;; Else day is 31 - Sets the value of atom to newval without regard for the current value. Returns newval.
       (reset! current-day 1)))
-    ;; (println "Current Day:" (Integer/parseInt (apply str (take 6 currentValue)))))
   (if (> currentPos 2)
     ;; Month Column
-    (println "Current Month:" (get months-map currentPos) "Data: " currentValue))
-  (println "Current Day: " @current-day)
-  (find-warmest-day-in-month @current-day currentPos (Integer/parseInt (apply str currentValue))))
+    ;; (println "Current Month:" (get months-map currentPos) "Data: " currentValue))
+    (get months-map currentPos))
+  
+  ;; (println "Current Day: " @current-day)
+  
+  ;; Return a new collection consisting of the currentMonth applied to the start. Which has been transformed into a sequence.
+  (into (find-warmest-day-in-month @current-day currentPos (Integer/parseInt (apply str currentValue))) (seq [(- currentPos 2)])))
+  ;; OG:
+  ;; (println "DAILY TEMP: " (find-warmest-day-in-month @current-day currentPos (Integer/parseInt (apply str currentValue))) "Month: " (- currentPos 2)))
+
+
+;; (defn check-line-data-1772
+;;   "Obtains data from the line.
+;;    Parameters: currentLine - The current line that the reader has parsed."
+;;   [currentLine]
+;;   (let [vectorOfWarmestDays []]
+;;   ;; Vector of warmest days.
+;;   (let [splitLine (str/split currentLine #"\s+")]
+;;     (let [numberLine (map parse-long splitLine)]
+;;       (println numberLine)
+;;       (loop [currentPos 1 currentData numberLine]
+;;         (when (< currentPos 15)
+;;           (let [currentValue (take 1 currentData)]
+;;             (let [currentDayData (set-data currentPos currentValue)]
+;;               ;; Data format: (MONTH {Day Temperature})
+;;               ;; (1 {1 23})
+;;               (if (and (> (first currentDayData) 0) (= (get vectorOfWarmestDays currentPos) nil) (> currentPos 2))
+;;                 ;; If Month Value > 0 & not= nil in the data structure - ADD to the structure for the first time.
+;;                 (println "VectorOfWarmestDays: " (conj vectorOfWarmestDays (last (set-data currentPos currentValue))))
+;;                 ;; Else - Data exists. Check if new temperature > old temperature. Return new values if so.
+;;                 (if (and (> (first currentDayData) 0) (not= (get vectorOfWarmestDays currentPos) nil) (> currentPos 2))
+;;                   (println "HIT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+;;                   ;; (println "First currentDayData: "(first currentDayData) "CurrentValue: " currentValue)
+;;                   )))
+;;                 ;; (println "FirstVal: " (first currentDayData) "Second Val: " (last currentDayData))
+;;                 ;; (println (first currentDayData)))
+;;               ;;(set-data currentPos currentValue)
+;;               ;; Use recur in tail position | Increments position & drops first item.
+;;               (recur (+ currentPos 1) (drop currentPos numberLine)))))))))
+
+;; (defn check-line-data-1772
+;;   "Obtains data from the line.
+;;    Parameters: currentLine - The current line that the reader has parsed."
+;;   [currentLine]
+;;   ;; Vector of warmest days.
+;;     (let [splitLine (str/split currentLine #"\s+")]
+;;       (let [numberLine (map parse-long splitLine)]
+;;         (println numberLine)
+;;         (loop [currentPos 1 currentData numberLine dailyValuesVector []]
+;;           (when (< currentPos 15)
+;;             (let [currentValue (take 1 currentData)]
+;;               (let [currentDayData (set-data currentPos currentValue)]
+;;               ;; Data format: (MONTH {Day Temperature})
+;;               ;; (1 {1 23})
+;;               ;; Use recur in tail position | Increments position & drops first item.
+;;               (recur (+ currentPos 1) (drop currentPos numberLine) (conj dailyValuesVector (last currentDayData))))))))))
 
 (defn check-line-data-1772
   "Obtains data from the line.
    Parameters: currentLine - The current line that the reader has parsed."
   [currentLine]
-  ;; (println currentLine)
-  (let [splitLine (str/split currentLine #"\s+")]
-    (let [numberLine (map parse-long splitLine)]
-      (println numberLine)
-      (loop [currentPos 1 currentData numberLine]
-        ;; Loop through each character in the string.
-        ;; IDEA: Use a LET for Year/Day -> Pass to other methods if:
-        ;; currentTemp > oldTemp, then note the Year/Day/Month of that
-        ;; I.E. If currentPos = 1 -> Assign that as curernt year
-        ;; If currentPos = 2 -> Assign that as current day
-        ;; Other numbers are used as months -> 3-15 (Jan-Dec)
-        ;; Default is 15
-        (when (< currentPos 15)
-          (let [currentValue (take 1 currentData)]
-            (set-data currentPos currentValue)
-            ;; Use recur in tail position | Increments position & drops first item.
-            (recur (+ currentPos 1) (drop currentPos numberLine))))))))
+  ;; I think that for the loop to work, it must be the top-level
+  (loop [currentPos 1 numberLine currentLine dailyValuesVector []]
+        (if-not (= currentPos 14)
+          (let [currentValue (take 1 numberLine)]
+            (let [currentDayData (set-data currentPos currentValue)]
+              ;; Data format: (MONTH {Day Temperature})
+              ;; (1 {1 23})
+              ;; Use recur in tail position | Increments position & drops first item.
+              (recur (+ currentPos 1) (drop 1 numberLine) (conj dailyValuesVector (last currentDayData)))))
+          dailyValuesVector)))
 
 ;; Example data:
 ;; 1772    1   32  -15   18   25   87  128  187  177  105  111   78  112
@@ -226,15 +280,43 @@
 ;;  ^ Reference used to compare "slurp" to the "clojure.java.io" approach.
 ;; https://stackoverflow.com/questions/25948813/read-line-by-line-for-big-files 
 ;;  ^ Snippet inspired by the post by "schaueho" - Answered Sep 20, 2014 at 16:17
+;; (defn read-by-line
+;;   "Reads the file line by line - As opposed to the entire file at once.
+;;    Parameters: fileName - The name of the entered file to be read."
+;;   [fileName]
+;;   (let [warmest-day-each-month {}]
+;;     (with-open [reader (io/reader fileName)]
+;;       (doseq [line (line-seq reader)]
+;;         ;; Repeatedly executes the body- Does not retain the head of the sequence (doseq).
+;;         ;; Returns the lines of text from reader as a lazy sequence of strings.
+;;         (let [currentLine (str/trimr (str/triml line))]
+;;           (let [splitLine (str/split currentLine #"\s+")]
+;;             (let [numberLine (map parse-long splitLine)]
+;;               (conj warmest-day-each-month (check-line-data-1772 numberLine)))))))
+;;         ;; Note: The position of the values in the vector represent the month.
+;;         ;; 1st position = Jan, 2nd Position = Feb etc.
+;;     (println "Final-Struct: " warmest-day-each-month)))
+
 (defn read-by-line
   "Reads the file line by line - As opposed to the entire file at once.
    Parameters: fileName - The name of the entered file to be read."
   [fileName]
-  (with-open [reader (io/reader fileName)]
-    (doseq [line (line-seq reader)]
-      ;; Repeatedly executes the body- Does not retain the head of the sequence (doseq).
-      ;; Returns the lines of text from reader as a lazy sequence of strings.
-      (check-line-data-1772 (str/trimr (str/triml line))))))
+  (let [warmest-day-each-month
+        (with-open [reader (io/reader fileName)]
+          (reduce (fn [warmest-day-each-month line]
+                    ;; Use reduce with function of two arguments - Take first value for accumulated result.
+                    ;; Take sequence of elements & apply function to that result & then to each element etc.
+                    ;; Returns the accumulated result.
+                    (let [currentLine (str/trimr (str/triml line))
+                          splitLine (str/split currentLine #"\s+")
+                          numberLine (map parse-long splitLine)]
+                      (conj warmest-day-each-month (check-line-data-1772 numberLine))))
+                  ;; Define structure as a vector.
+                  []
+                  (line-seq reader)))]
+    ;; Note: The position of the values in the vector represent the month.
+    ;; 1st position = Jan, 2nd Position = Feb etc.
+    (println "Final-Struct: " warmest-day-each-month)))
 
 (defn slurp-1772-file
   "Slurps the 1772toDate.txt file line by line."
@@ -312,3 +394,12 @@
 
 ;;   "I ♥️ Clojure"
 ;;   )
+
+
+;; Loop through each character in the string.
+;; IDEA: Use a LET for Year/Day -> Pass to other methods if:
+;; currentTemp > oldTemp, then note the Year/Day/Month of that
+;; I.E. If currentPos = 1 -> Assign that as curernt year
+;; If currentPos = 2 -> Assign that as current day
+;; Other numbers are used as months -> 3-15 (Jan-Dec)
+;; Default is 15
