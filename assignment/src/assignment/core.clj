@@ -272,21 +272,17 @@
     (println "Final-Struct: " warmest-day-each-month)
     (let [warmest-vec (drop 2 (get-in warmest-day-each-month [0]))]
       ;; As vectors are associative, use get-in
-      (println "warmest-vec: " warmest-vec)
+      ;; (println "warmest-vec: " warmest-vec)
       (loop [dayTemperatureVec warmest-vec currentIndex 1]
         (println "dayTemperatureVec" dayTemperatureVec)
         (let [currentVector (drop 2 (get-in warmest-day-each-month [currentIndex]))]
           ;; Gets the current nested Vector.
           (println "CurentVecor: " currentVector)
           (loop [currentVectorIndex 0]
-            (println "(nth currentVector currentVectorIndex) type:" (nth currentVector currentVectorIndex)) ;;{2 20}
-            (println "(get (nth currentVector currentVectorIndex) (+ currentVectorIndex 1)) type:" (get (nth currentVector currentVectorIndex) (+ currentVectorIndex 1)))
-            (println "(dayTemperatureVec currentVectorIndex) type:" (get dayTemperatureVec (+ currentVectorIndex 1))) ;; nil
-            (println "(= (dayTemperatureVec currentVectorIndex) nil) type:" (= (nth dayTemperatureVec currentVectorIndex) nil)) ;; false
-            (if (or (> ((get (nth currentVector currentVectorIndex) (+ currentVectorIndex 1))) (get dayTemperatureVec currentVectorIndex)) ((= (nth dayTemperatureVec currentVectorIndex) nil)))
+            (if (or (> (get (nth currentVector currentVectorIndex) (+ currentVectorIndex 2)) (get (nth dayTemperatureVec currentVectorIndex) (+ currentVectorIndex 1))) (nil? (nth dayTemperatureVec currentVectorIndex)))
               ;; If the current value in the vector is > old value OR old value = nil THEN replace
               (assoc dayTemperatureVec currentVectorIndex (nth currentVector currentVectorIndex))
-              )))
+              (recur (+ currentIndex 1)))))
         (println "!!! " dayTemperatureVec)))))
 
 (defn slurp-1772-file
