@@ -209,53 +209,6 @@
   ;; OG:
   ;; (println "DAILY TEMP: " (find-warmest-day-in-month @current-day currentPos (Integer/parseInt (apply str currentValue))) "Month: " (- currentPos 2)))
 
-
-;; (defn check-line-data-1772
-;;   "Obtains data from the line.
-;;    Parameters: currentLine - The current line that the reader has parsed."
-;;   [currentLine]
-;;   (let [vectorOfWarmestDays []]
-;;   ;; Vector of warmest days.
-;;   (let [splitLine (str/split currentLine #"\s+")]
-;;     (let [numberLine (map parse-long splitLine)]
-;;       (println numberLine)
-;;       (loop [currentPos 1 currentData numberLine]
-;;         (when (< currentPos 15)
-;;           (let [currentValue (take 1 currentData)]
-;;             (let [currentDayData (set-data currentPos currentValue)]
-;;               ;; Data format: (MONTH {Day Temperature})
-;;               ;; (1 {1 23})
-;;               (if (and (> (first currentDayData) 0) (= (get vectorOfWarmestDays currentPos) nil) (> currentPos 2))
-;;                 ;; If Month Value > 0 & not= nil in the data structure - ADD to the structure for the first time.
-;;                 (println "VectorOfWarmestDays: " (conj vectorOfWarmestDays (last (set-data currentPos currentValue))))
-;;                 ;; Else - Data exists. Check if new temperature > old temperature. Return new values if so.
-;;                 (if (and (> (first currentDayData) 0) (not= (get vectorOfWarmestDays currentPos) nil) (> currentPos 2))
-;;                   (println "HIT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-;;                   ;; (println "First currentDayData: "(first currentDayData) "CurrentValue: " currentValue)
-;;                   )))
-;;                 ;; (println "FirstVal: " (first currentDayData) "Second Val: " (last currentDayData))
-;;                 ;; (println (first currentDayData)))
-;;               ;;(set-data currentPos currentValue)
-;;               ;; Use recur in tail position | Increments position & drops first item.
-;;               (recur (+ currentPos 1) (drop currentPos numberLine)))))))))
-
-;; (defn check-line-data-1772
-;;   "Obtains data from the line.
-;;    Parameters: currentLine - The current line that the reader has parsed."
-;;   [currentLine]
-;;   ;; Vector of warmest days.
-;;     (let [splitLine (str/split currentLine #"\s+")]
-;;       (let [numberLine (map parse-long splitLine)]
-;;         (println numberLine)
-;;         (loop [currentPos 1 currentData numberLine dailyValuesVector []]
-;;           (when (< currentPos 15)
-;;             (let [currentValue (take 1 currentData)]
-;;               (let [currentDayData (set-data currentPos currentValue)]
-;;               ;; Data format: (MONTH {Day Temperature})
-;;               ;; (1 {1 23})
-;;               ;; Use recur in tail position | Increments position & drops first item.
-;;               (recur (+ currentPos 1) (drop currentPos numberLine) (conj dailyValuesVector (last currentDayData))))))))))
-
 (defn check-line-data-1772
   "Obtains data from the line.
    Parameters: currentLine - The current line that the reader has parsed."
@@ -316,7 +269,25 @@
                   (line-seq reader)))]
     ;; Note: The position of the values in the vector represent the month.
     ;; 1st position = Jan, 2nd Position = Feb etc.
-    (println "Final-Struct: " warmest-day-each-month)))
+    (println "Final-Struct: " warmest-day-each-month)
+    (let [warmest-vec (drop 2 (get-in warmest-day-each-month [0]))]
+      ;; As vectors are associative, use get-in
+      (println "warmest-vec: " warmest-vec)
+      (loop [dayTemperatureVec warmest-vec currentIndex 1]
+        (println "dayTemperatureVec" dayTemperatureVec)
+        (let [currentVector (drop 2 (get-in warmest-day-each-month [currentIndex]))]
+          ;; Gets the current nested Vector.
+          (println "CurentVecor: " currentVector)
+          (loop [currentVectorIndex 0]
+            (println "(nth currentVector currentVectorIndex) type:" (nth currentVector currentVectorIndex)) ;;{2 20}
+            (println "(get (nth currentVector currentVectorIndex) (+ currentVectorIndex 1)) type:" (get (nth currentVector currentVectorIndex) (+ currentVectorIndex 1)))
+            (println "(dayTemperatureVec currentVectorIndex) type:" (get dayTemperatureVec (+ currentVectorIndex 1))) ;; nil
+            (println "(= (dayTemperatureVec currentVectorIndex) nil) type:" (= (nth dayTemperatureVec currentVectorIndex) nil)) ;; false
+            (if (or (> ((get (nth currentVector currentVectorIndex) (+ currentVectorIndex 1))) (get dayTemperatureVec currentVectorIndex)) ((= (nth dayTemperatureVec currentVectorIndex) nil)))
+              ;; If the current value in the vector is > old value OR old value = nil THEN replace
+              (assoc dayTemperatureVec currentVectorIndex (nth currentVector currentVectorIndex))
+              )))
+        (println "!!! " dayTemperatureVec)))))
 
 (defn slurp-1772-file
   "Slurps the 1772toDate.txt file line by line."
