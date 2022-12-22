@@ -163,10 +163,9 @@
   [currentDay currentMonth currentTemperature]
   (let [mappedMonth (get warmest-day-each-month (- currentMonth 2))]
     (if (not= mappedMonth nil)
-      (map (fn [[mappedMonthDay mappedMonthTemp]]
-                    (if (> currentTemperature mappedMonthTemp)
-                      (update-current-map mappedMonth mappedMonthDay currentDay currentTemperature)))
-                  mappedMonth))))
+      (map (fn [[mappedMonthDay]]
+             (update-current-map mappedMonth mappedMonthDay currentDay currentTemperature))
+           mappedMonth))))
 
 ;; 2.	Find the warmest and coldest years.
 (defn find-warmest-and-coldest-year
@@ -206,8 +205,6 @@
   
   ;; Return a new collection consisting of the currentMonth applied to the start. Which has been transformed into a sequence.
   (into (find-warmest-day-in-month @current-day currentPos (Integer/parseInt (apply str currentValue))) (seq [(- currentPos 2)])))
-  ;; OG:
-  ;; (println "DAILY TEMP: " (find-warmest-day-in-month @current-day currentPos (Integer/parseInt (apply str currentValue))) "Month: " (- currentPos 2)))
 
 (defn check-line-data-1772
   "Obtains data from the line.
@@ -215,7 +212,7 @@
   [currentLine]
   ;; I think that for the loop to work, it must be the top-level
   (loop [currentPos 1 numberLine currentLine dailyValuesVector []]
-        (if-not (= currentPos 14)
+        (if-not (= currentPos 15)
           (let [currentValue (take 1 numberLine)]
             (let [currentDayData (set-data currentPos currentValue)]
               ;; Data format: (MONTH {Day Temperature})
@@ -227,28 +224,34 @@
 ;; Example data:
 ;; 1772    1   32  -15   18   25   87  128  187  177  105  111   78  112
 
-;; NOTE: External sources (non-Clojure documentation) has been referenced to read line-by-line.
-;; REFERENCES:
-;; https://www.tutorialspoint.com/clojure/clojure_file_io.htm
-;;  ^ Reference used to compare "slurp" to the "clojure.java.io" approach.
-;; https://stackoverflow.com/questions/25948813/read-line-by-line-for-big-files 
-;;  ^ Snippet inspired by the post by "schaueho" - Answered Sep 20, 2014 at 16:17
-;; (defn read-by-line
-;;   "Reads the file line by line - As opposed to the entire file at once.
-;;    Parameters: fileName - The name of the entered file to be read."
-;;   [fileName]
-;;   (let [warmest-day-each-month {}]
-;;     (with-open [reader (io/reader fileName)]
-;;       (doseq [line (line-seq reader)]
-;;         ;; Repeatedly executes the body- Does not retain the head of the sequence (doseq).
-;;         ;; Returns the lines of text from reader as a lazy sequence of strings.
-;;         (let [currentLine (str/trimr (str/triml line))]
-;;           (let [splitLine (str/split currentLine #"\s+")]
-;;             (let [numberLine (map parse-long splitLine)]
-;;               (conj warmest-day-each-month (check-line-data-1772 numberLine)))))))
-;;         ;; Note: The position of the values in the vector represent the month.
-;;         ;; 1st position = Jan, 2nd Position = Feb etc.
-;;     (println "Final-Struct: " warmest-day-each-month)))
+;; Reference: https://stackoverflow.com/questions/40370240/easy-way-to-change-specific-list-item-in-list
+;; Inspired by: Mark Fisher's post - Answered Nov 3, 2016 at 9:45.
+(defn replace-value
+  "Replaces the old Key:Value pair (hashmap) with the newer version, populates the rest of the structure with original values."
+  [dayTemperatureList currentVectorIndex currentItem]
+  (loop [newVec [] oldList dayTemperatureList]
+    (if (seq oldList)
+      ;; Return a seq on the collection.
+      (if (= (count newVec) currentVectorIndex)
+        (recur (conj newVec currentItem) (rest oldList))
+        (recur (conj newVec (first oldList)) (rest oldList))) 
+    (apply list newVec))))
+
+(defn check-daily-values
+  "TODO"
+  [warmestTempSequence currentSequence currentIndex]
+  (if (> (get currentSequence (+ currentIndex 1)) (get warmestTempSequence 1))
+    ;; If the current value in the vector is > old value THEN replace
+    (replace-value (warmestTempSequence (- currentIndex 1)) (currentSequence (- currentIndex 1)) (+ currentIndex 1))
+    warmestTempSequence))
+
+(defn check-daily-values
+  "TODO"
+  [warmestTempSequence currentSequence currentIndex]
+  (if (> (get currentSequence (+ currentIndex 1)) (get warmestTempSequence 1))
+    ;; If the current value in the vector is > old value THEN replace
+    currentSequence
+    warmestTempSequence))
 
 (defn read-by-line
   "Reads the file line by line - As opposed to the entire file at once.
@@ -270,25 +273,111 @@
     ;; Note: The position of the values in the vector represent the month.
     ;; 1st position = Jan, 2nd Position = Feb etc.
     (println "Final-Struct: " warmest-day-each-month)
-    (let [warmest-vec (drop 2 (get-in warmest-day-each-month [0]))]
-      ;; As vectors are associative, use get-in
-      ;; (println "warmest-vec: " warmest-vec)
-      (loop [dayTemperatureVec warmest-vec currentIndex 1]
-        (println "dayTemperatureVec" dayTemperatureVec)
-        (let [currentVector (drop 2 (get-in warmest-day-each-month [currentIndex]))]
-          ;; Gets the current nested Vector.
-          (println "CurentVecor: " currentVector)
-          (loop [currentVectorIndex 0]
-            (if (or (> (get (nth currentVector currentVectorIndex) (+ currentVectorIndex 2)) (get (nth dayTemperatureVec currentVectorIndex) (+ currentVectorIndex 1))) (nil? (nth dayTemperatureVec currentVectorIndex)))
-              ;; If the current value in the vector is > old value OR old value = nil THEN replace
-              (assoc dayTemperatureVec currentVectorIndex (nth currentVector currentVectorIndex))
-              (recur (+ currentIndex 1)))))
-        (println "!!! " dayTemperatureVec)))))
+      (loop [currentIndex 1 warmestTemp (drop 2 (nth warmest-day-each-month (- currentIndex 1)))]
+        (if-not (= currentIndex (count warmest-day-each-month))
+          (let [currentVector (drop 2 (nth warmest-day-each-month currentIndex))]
+            ;; As vectors are associative, use get-in
+            ;; Gets the current nested Vector.
+            (println "CurentVector: " currentVector)
+            ;; Result of the inner loop used in the outer.
+          (recur (+ currentIndex 1)
+                 (loop [warmestTemp warmestTemp currentVectorIndex 1]
+                   (println)
+                   (println "CurrentVectorIndex: " currentVectorIndex)
+                   (println "warmestTemp: " warmestTemp)
+                   (println "currentVector: " currentVector)
+                   (println "First Get: " (get (nth currentVector (- currentVectorIndex 1)) (+ currentIndex 1)))
+                   (println "For key test: " (nth warmestTemp (- currentVectorIndex 1)))
+                   (println "Get Key: " (first (keys (nth warmestTemp (- currentVectorIndex 1)))))
+                   (println "Second Get: " (get (nth warmestTemp (- currentVectorIndex 1)) (first (keys (nth warmestTemp (- currentVectorIndex 1))))))
+                    (if-not (= currentVectorIndex 12)
+                      ;; Whilst month is December or any month beforehand.  
+                      (if (> (get (nth currentVector (- currentVectorIndex 1)) (+ currentIndex 1)) (get (nth warmestTemp (- currentVectorIndex 1)) (first (keys (nth warmestTemp (- currentVectorIndex 1))))))
+                        ;; If the current value in the vector is greater than the old value then replace.
+                        (recur (replace-value warmestTemp (- currentVectorIndex 1) (nth currentVector (- currentVectorIndex 1))) (+ currentVectorIndex 1))
+                        ;; Else do not replace & increase counter.
+                        (recur warmestTemp (+ currentVectorIndex 1)))
+                      warmestTemp))))
+          warmestTemp))))
+
+;; (defn read-by-line
+;;   "Reads the file line by line - As opposed to the entire file at once.
+;;    Parameters: fileName - The name of the entered file to be read."
+;;   [fileName]
+;;   (let [warmest-day-each-month
+;;         (with-open [reader (io/reader fileName)]
+;;           (reduce (fn [warmest-day-each-month line]
+;;                     ;; Use reduce with function of two arguments - Take first value for accumulated result.
+;;                     ;; Take sequence of elements & apply function to that result & then to each element etc.
+;;                     ;; Returns the accumulated result.
+;;                     (let [currentLine (str/trimr (str/triml line))
+;;                           splitLine (str/split currentLine #"\s+")
+;;                           numberLine (map parse-long splitLine)]
+;;                       (conj warmest-day-each-month (check-line-data-1772 numberLine))))
+;;                   ;; Define structure as a vector.
+;;                   []
+;;                   (line-seq reader)))]
+;;     ;; Note: The position of the values in the vector represent the month.
+;;     ;; 1st position = Jan, 2nd Position = Feb etc.
+;;     (println "Final-Struct: " warmest-day-each-month)
+;;     (let [warmest-vec (drop 2 (get-in warmest-day-each-month [0]))]
+;;       (println "COUNT!!!!!!!!!!: " (count warmest-vec))
+;;       (loop [currentIndex 1]
+;;         (when (< currentIndex (- (count warmest-vec) 2))
+;;           (println "CURRENT INDEX!!!!!!!!!!!!!!!!!!!!!!: " currentIndex)
+;;           (println "warmest-vec:" warmest-vec)
+;;           (let [currentVector (drop 2 (get-in warmest-day-each-month [currentIndex]))]
+;;             ;; As vectors are associative, use get-in
+;;             ;; Gets the current nested Vector.
+;;             (println "CurentVector: " currentVector)      
+;;             (loop [warmestTemp warmest-vec currentVectorIndex 1]
+;;               (println "warmestTemp" warmestTemp)
+;;               (when (< currentVectorIndex 13)
+;;                 ;; Whilst month is December or any month beforehand.
+;;                 (if (> (get (nth currentVector (- currentVectorIndex 1)) (+ currentIndex 1)) (get (nth warmestTemp (- currentVectorIndex 1)) 1))
+;;                   ;; If the current value in the vector is greater than the old value then replace.
+;;                   (recur (replace-value warmestTemp (- currentVectorIndex 1) (nth currentVector (- currentVectorIndex 1))) (+ currentVectorIndex 1))
+;;                   ;; Else do not replace & increase counter.
+;;                   (recur warmestTemp (+ currentVectorIndex 1))))))
+;;           (recur (+ currentIndex 1))))
+;;       warmest-vec)))
+
+;; (defn read-by-line
+;;   "Reads the file line by line - As opposed to the entire file at once.
+;;    Parameters: fileName - The name of the entered file to be read."
+;;   [fileName]
+;;   (let [warmest-day-each-month
+;;         (with-open [reader (io/reader fileName)]
+;;           (reduce (fn [warmest-day-each-month line]
+;;                     ;; Use reduce with function of two arguments - Take first value for accumulated result.
+;;                     ;; Take sequence of elements & apply function to that result & then to each element etc.
+;;                     ;; Returns the accumulated result.
+;;                     (let [currentLine (str/trimr (str/triml line))
+;;                           splitLine (str/split currentLine #"\s+")
+;;                           numberLine (map parse-long splitLine)]
+;;                       (conj warmest-day-each-month (check-line-data-1772 numberLine))))
+;;                   ;; Define structure as a vector.
+;;                   []
+;;                   (line-seq reader)))]
+;;     ;; Note: The position of the values in the vector represent the month.
+;;     ;; 1st position = Jan, 2nd Position = Feb etc.
+;;     (println "Final-Struct: " warmest-day-each-month)
+;;     (let [warmest-vec (drop 2 (get-in warmest-day-each-month [0])) warmestCurrentDay[]]
+;;       (println "warmest-vec" warmest-vec)
+;;       (loop [currentIndex 1 computedWarmestDays []]
+;;         ;; For each line in the text file.
+;;         (println "currentIndex: " currentIndex)
+;;         (if-not (= currentIndex (- (count warmest-vec) 2))
+;;           (let [currentVector (drop 2 (get-in warmest-day-each-month [currentIndex]))]
+;;             (println "Current Vector: " currentVector)
+;;             (println "warmest-vec   : " warmest-vec)
+;;             (recur (+ currentIndex 1) (conj computedWarmestDays (map check-daily-values warmest-vec currentVector (sequence [currentIndex])))))
+;;           computedWarmestDays)))))
 
 (defn slurp-1772-file
   "Slurps the 1772toDate.txt file line by line."
   []
-  (println (read-by-line "src/assignment/test.txt")))
+  (println "Warmest Day of Each month: " (read-by-line "src/assignment/test.txt")))
 
 (defn slurp-2019-file
   "Slurps the 2019.txt file line by line."
@@ -338,35 +427,3 @@
   (println "Executing project:\n Author: Chris Deam.")
   (initialise-project)
 )
-
-
-
-
-
-;; (initialise-project)
-
-;; Example code provided by Calva.
-;; (comment
-;;   (+ (* 2 2)
-;;      2)
-
-;;   (Math/abs -1)
-
-;;   (hello "Calva REPL")
-
-;;   (defn hello [s]
-;;     (str "Hello " s))
-
-;;   (range 10)
-
-;;   "I ♥️ Clojure"
-;;   )
-
-
-;; Loop through each character in the string.
-;; IDEA: Use a LET for Year/Day -> Pass to other methods if:
-;; currentTemp > oldTemp, then note the Year/Day/Month of that
-;; I.E. If currentPos = 1 -> Assign that as curernt year
-;; If currentPos = 2 -> Assign that as current day
-;; Other numbers are used as months -> 3-15 (Jan-Dec)
-;; Default is 15
