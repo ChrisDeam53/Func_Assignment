@@ -170,7 +170,12 @@
   [data]
   (apply (partial map (fn [& nums] (apply + nums))) data))
 
-(defn divideNumber
+(defn divideNumberMonth
+  "TODO"
+  [number]
+  (float (/ number 31)))
+
+(defn divideNumberYear
   "TODO"
   [number]
   (float (/ number 12)))
@@ -281,22 +286,33 @@
     ;; (println "ZZZZZZ: " (map process-year-data lineData))
     ;; Use the return result from this in part 3
     ;;(println "Combined: " (map vector (map process-year-data lineData)))
-    (println "1.5 Combined: " (partition 31 (map process-year-data lineData)))
+    ;; (println "1.5 Combined: " (partition 31 (map process-year-data lineData)))
     
     ;; Works - But it does it for all 62 values
-    (println "1.6 Combined: " (apply (partial map (fn [& nums] (apply + nums))) (map process-year-data lineData)))
+    ;; (println "1.6 Combined: " (apply (partial map (fn [& nums] (apply + nums))) (map process-year-data lineData)))
     ;; (println "1.65 Combined: " (partition 31 (apply (partial map (fn [& nums] (apply + nums))) (map process-year-data lineData))))
     
     
-    (println "1.66 Combined: " (map addIndex (partition 31 (map process-year-data lineData))))
-    (println "1.67 Combined: " (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData)))))
+    ;; (println "1.66 Combined: " (map addIndex (partition 31 (map process-year-data lineData))))
+    ;; (println "1.67 Combined: " (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData)))))
     ;;(println "1.68 Combined:" (apply (partial map (fn [& nums] (divideNumber nums))) (map process-year-data lineData)))
     ;;(println "1.69 Combined:"  (map inc (map process-year-data lineData)))
     ;; (println "1.69 Combined:"  (map inc [1 2 3 4 5]))
     
-    (println "1.70 Combined: " (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))))
-    (println "Coldest Year: " (.indexOf (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))) (apply min (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))))))
-    (println "Warmest Year:" (.indexOf (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))) (apply max (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))))))
+    ;; OG
+    (println "1.70 Combined: " (map (fn [& num] (apply divideNumberMonth num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))))
+    (println "1.71 Combined: " (map addIndex (partition 31 (map process-year-data lineData))))
+    
+    (let [totalAverage (map (fn [& num] (apply divideNumberMonth num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData)))))]
+      (let [yearAverage (map (fn [& num] (apply divideNumberYear num)) totalAverage)]
+        (println "Year Average: " yearAverage)
+        (println "Coldest Year: " (+ '1772 (.indexOf yearAverage (apply min yearAverage))))
+        (println "Warmest Year:" (+ '1772 (.indexOf yearAverage (apply max yearAverage))))))
+
+           
+    ;;(println "1.70 Combined: " (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))))
+    ;;(println "Coldest Year: " (+ '1772 (.indexOf (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))) (apply min (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData)))))))))
+    ;;(println "Warmest Year:" (+ '1772 (.indexOf (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))) (apply max (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData)))))))))
     
     
     ;; (fn [coll] (filter even? coll))
