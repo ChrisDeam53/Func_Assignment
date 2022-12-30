@@ -185,15 +185,19 @@
   [number divideBy]
   (float (/ number divideBy)))
 
+
+;; Reference when finding the "Closest Variation to the Mean:"
+;; https://groups.google.com/g/clojure/c/quEzEM_ndCY
+;; Post by: Nicolas Oury On Sat, Sep 25, 2010 at 3:40 PM.
 (defn getVariations
   "TODO"
-  [data]
+  [data meanDataList]
   (let [maxMonthAverage (apply max data)]
     (let [maxMonthIndex (.indexOf data (apply max data))]
-      (let [minMonthAverage (apply min data)]
-        (let [minMonthIndex (.indexOf data (apply min data))]
-          (str "Max Month Instance(year): " (+ '1772 maxMonthIndex) " |  Max Average Temp: " maxMonthAverage
-               "    Min Month Instance(year): " (+ '1772 minMonthIndex) " |  Min Average Temp:" minMonthAverage "\n"))))))
+      (let [closestVariationToMean (apply min-key #(Math/abs (- % meanDataList)) data)]
+        (let [closestVariationToMeanIndex (.indexOf data (apply min-key #(Math/abs (- % meanDataList)) data))]
+          (str "Furthest Month Instance(year) to the mean: " (+ '1772 maxMonthIndex) " |  Max Average Temp: " maxMonthAverage
+               "    Closest Month Instance(year) to the mean: " (+ '1772 closestVariationToMeanIndex) " |  Min Average Temp:" closestVariationToMean "\n"))))))
 
 (defn modMonthDay
   "TODO"
@@ -334,8 +338,9 @@
       (let [test1 (map (fn [num] (divideNumberVar num divisorDays)) (addIndex (map addIndex (partition 31 (map process-year-data lineData)))))]
         (let [divisorYears (count (map addIndex (partition 31 (map process-year-data lineData))))]
           (let [test2 (map (fn [num] (divideNumberVar num divisorYears)) test1)]
-            (println "Mean Temperature for Each Calender Month (All of that month):" test2)))))
-
+            (println "Mean Temperature for Each Calender Month (All of that month):" test2)
+            (let [test3 (map conjIndex (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (partition 12 (map (fn [num] (divideNumberMonth num)) (flatten (map addIndex (partition 31 (map process-year-data lineData))))))))]
+              (println "Variations: \n" (map (fn [monthAverage test2] (getVariations monthAverage test2)) (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (flatten test3)) test2)))))))
 
     ;; (println "TESTING:" (map addIndex (partition 31 (map process-year-data lineData))))
     
@@ -363,10 +368,10 @@
     ;;   (println "TESTING7 MIN POS: " (.indexOf (first (first test3)) (apply min (first (first test3)))))
     ;;   )
     
-    (let [test4 (map conjIndex (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (partition 12 (map (fn [num] (divideNumberMonth num)) (flatten (map addIndex (partition 31 (map process-year-data lineData))))))))]
-      ;; (println "test4: " test4)
-      ;; (println "flatten: "  (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (flatten test4)))
-      (println "Variations: \n" (map (fn [monthAverage] (getVariations monthAverage)) (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (flatten test4)))))
+    ;; (let [test4 (map conjIndex (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (partition 12 (map (fn [num] (divideNumberMonth num)) (flatten (map addIndex (partition 31 (map process-year-data lineData))))))))]
+    ;;   ;; (println "test4: " test4)
+    ;;   ;; (println "flatten: "  (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (flatten test4)))
+    ;;   (println "Variations: \n" (map (fn [monthAverage] (getVariations monthAverage)) (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (flatten test4)))))
     
     ;;(println "a" (map (fn [monthAverage] (getVariations monthAverage)) ladslads))
     
@@ -411,7 +416,7 @@
 (defn slurp-1772-file
   "Slurps the 1772toDate.txt file line by line."
   []
-  (println "Warmest Day for Each Calender Month: " (read-by-line "src/assignment/1772toDate.txt")))
+  (println "Warmest Day for Each Calender Month: " (read-by-line "src/assignment/test.txt")))
 
 (defn slurp-2019-file
   "Slurps the 2019.txt file line by line."
