@@ -126,11 +126,6 @@
   "Stores the current day."
   (atom 0))
 
-;; Use an "Atom" as a counter for the current year.
-(def current-year
-  "Stores the current year."
-  (atom 1772))
-
 (def warmest-day-each-month
   "Hash-Map containing a {Month: {Day Temperature} }"
   { 1 {0 0}, 2 {0 0}, 3 {0 0}, 4 {0 0}, 5 {0 0}, 6 {0 0}, 7 {0 0}, 8 {0 0},
@@ -170,6 +165,11 @@
   [data]
   (apply (partial map (fn [& nums] (apply + nums))) data))
 
+(defn conjIndex
+  "TODO"
+  [data]
+  (apply (partial map (fn [& nums] (conj nums))) data))
+
 (defn divideNumberMonth
   "TODO"
   [number]
@@ -180,6 +180,28 @@
   [number]
   (float (/ number 12)))
 
+(defn divideNumberVar
+  "TODO"
+  [number divideBy]
+  (float (/ number divideBy)))
+
+(defn getVariations
+  "TODO"
+  [data]
+  (let [maxMonthAverage (apply max data)]
+    (let [maxMonthIndex (.indexOf data (apply max data))]
+      (let [minMonthAverage (apply min data)]
+        (let [minMonthIndex (.indexOf data (apply min data))]
+          (str "Max Month Instance(year): " (+ '1772 maxMonthIndex) " |  Max Average Temp: " maxMonthAverage
+               "    Min Month Instance(year): " (+ '1772 minMonthIndex) " |  Min Average Temp:" minMonthAverage "\n"))))))
+
+(defn modMonthDay
+  "TODO"
+  [data]
+  {(mod (Integer/parseInt (subs (str (keys data)) 1 (- (count (str (keys data))) 1))) 31) (get data (Integer/parseInt (subs (str (keys data)) 1 (- (count (str (keys data))) 1))))})
+
+;; (apply min-key #(abs (- % 136)) xs)
+
 ;; 3.	Find the mean temperature for each calendar month
 ;; (the average for all Mays, for example) and the instance
 ;; of each month that has the greatest and smallest variation
@@ -187,7 +209,8 @@
 (defn find-mean-temperature-per-month
 "TOOD"
   [lineData]
-  (println "TODO"))
+  ;;(println "LineData for 2.3: " lineData)
+  )
 
 (defn set-data
   "DOING"
@@ -209,7 +232,6 @@
     ;; (println "Current Month:" (get months-map currentPos) "Data: " currentValue))
     (get months-map currentPos))
   
-  ;; (println "Current Day: " @current-day)
   
   ;; Return a new collection consisting of the currentMonth applied to the start. Which has been transformed into a sequence.
   (into (find-warmest-day-in-month @current-day currentPos (Integer/parseInt (apply str currentValue))) (seq [(- currentPos 2)])))
@@ -228,8 +250,6 @@
               (recur (+ currentPos 1) (drop 1 numberLine) (conj dailyValuesVector (last currentDayData)))))
           dailyValuesVector)))
 
-;; Example data:
-;; 1772    1   32  -15   18   25   87  128  187  177  105  111   78  112
 
 ;; Reference: https://stackoverflow.com/questions/40370240/easy-way-to-change-specific-list-item-in-list
 ;; Inspired by: Mark Fisher's post - Answered Nov 3, 2016 at 9:45.
@@ -243,22 +263,6 @@
         (recur (conj newVec currentItem) (rest oldList))
         (recur (conj newVec (first oldList)) (rest oldList))) 
     (apply list newVec))))
-
-(defn check-daily-values
-  "TODO"
-  [warmestTempSequence currentSequence currentIndex]
-  (if (> (get currentSequence (+ currentIndex 1)) (get warmestTempSequence 1))
-    ;; If the current value in the vector is > old value THEN replace
-    (replace-value (warmestTempSequence (- currentIndex 1)) (currentSequence (- currentIndex 1)) (+ currentIndex 1))
-    warmestTempSequence))
-
-(defn check-daily-values
-  "TODO"
-  [warmestTempSequence currentSequence currentIndex]
-  (if (> (get currentSequence (+ currentIndex 1)) (get warmestTempSequence 1))
-    ;; If the current value in the vector is > old value THEN replace
-    currentSequence
-    warmestTempSequence))
 
 (defn read-by-line
   "Reads the file line by line - As opposed to the entire file at once.
@@ -287,86 +291,103 @@
     ;; Use the return result from this in part 3
     ;;(println "Combined: " (map vector (map process-year-data lineData)))
     ;; (println "1.5 Combined: " (partition 31 (map process-year-data lineData)))
-    
+
     ;; Works - But it does it for all 62 values
     ;; (println "1.6 Combined: " (apply (partial map (fn [& nums] (apply + nums))) (map process-year-data lineData)))
     ;; (println "1.65 Combined: " (partition 31 (apply (partial map (fn [& nums] (apply + nums))) (map process-year-data lineData))))
-    
-    
+
+
     ;; (println "1.66 Combined: " (map addIndex (partition 31 (map process-year-data lineData))))
-    ;; (println "1.67 Combined: " (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData)))))
-    ;;(println "1.68 Combined:" (apply (partial map (fn [& nums] (divideNumber nums))) (map process-year-data lineData)))
-    ;;(println "1.69 Combined:"  (map inc (map process-year-data lineData)))
+    ;;(println "1.67 Combined: " (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData)))))
+    ;; (println "1.68 Combined:" (apply (partial map (fn [& nums] (divideNumberYear nums))) (map process-year-data lineData)))
     ;; (println "1.69 Combined:"  (map inc [1 2 3 4 5]))
-    
+
     ;; OG
-    (println "1.70 Combined: " (map (fn [& num] (apply divideNumberMonth num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))))
-    (println "1.71 Combined: " (map addIndex (partition 31 (map process-year-data lineData))))
-    
+    ;; (println "1.70 Combined: " (map (fn [& num] (apply divideNumberMonth num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))))
+    ;; (println "1.71 Combined: " (map addIndex (partition 31 (map process-year-data lineData))))
+    ;; (println "1.71.1 Combined: " (count (map addIndex (partition 31 (map process-year-data lineData)))))
+
+    ;; (println "1.72 Combined: " (addIndex (map addIndex (partition 31 (map process-year-data lineData)))))
+    ;; (println "1.73 Combined: " (map (fn [& num] (apply divideNumberMonth num)) (addIndex (map addIndex (partition 31 (map process-year-data lineData))))))
+    ;; (println "1.74 Combined: " (map (fn [& num] (apply divideNumberMonth num)) (addIndex (map addIndex (partition 31 (map process-year-data lineData))))))
+
+    ;; This is dividing by 31, it should be 31 times count
+    ;; (let [test1 (map (fn [& num] (apply divideNumberMonth num)) (addIndex (map addIndex (partition 31 (map process-year-data lineData)))))]
+    ;;   ;; This should divide by the total count
+    ;;   (let [test2 (map (fn [& num] (apply divideNumberVar num)) test1)]
+    ;;     (println "test2: " test2)))
+
+
+
+    ;; test2 (map (fn [num] (divideNumberVar num divisorDays)) test1)])
+
+
+
+
     (let [totalAverage (map (fn [& num] (apply divideNumberMonth num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData)))))]
       (let [yearAverage (map (fn [& num] (apply divideNumberYear num)) totalAverage)]
-        (println "Year Average: " yearAverage)
-        (println "Coldest Year: " (+ '1772 (.indexOf yearAverage (apply min yearAverage))))
-        (println "Warmest Year:" (+ '1772 (.indexOf yearAverage (apply max yearAverage))))))
+        ;; (println "Year Average: " yearAverage)
+        (println "Coldest Year: " (+ '1772 (.indexOf yearAverage (apply min yearAverage))) "with a temperature of: " (apply min yearAverage))
+        (println "Warmest Year: " (+ '1772 (.indexOf yearAverage (apply max yearAverage))) "with a temperature of: " (apply max yearAverage))))
 
-           
+    (let [divisorDays (* 31 (count (map addIndex (partition 31 (map process-year-data lineData)))))]
+      (let [test1 (map (fn [num] (divideNumberVar num divisorDays)) (addIndex (map addIndex (partition 31 (map process-year-data lineData)))))]
+        (let [divisorYears (count (map addIndex (partition 31 (map process-year-data lineData))))]
+          (let [test2 (map (fn [num] (divideNumberVar num divisorYears)) test1)]
+            (println "Mean Temperature for Each Calender Month (All of that month):" test2)))))
+
+
+    ;; (println "TESTING:" (map addIndex (partition 31 (map process-year-data lineData))))
+    
+    ;; (println "TESTING2: " (map addIndex (partition 31 (map process-year-data lineData))))
+    ;; (println "TESTING3: " (flatten (map addIndex (partition 31 (map process-year-data lineData)))))
+    ;; (println "TESTING4: " (partition 12 (map (fn [num] (divideNumberMonth num)) (flatten (map addIndex (partition 31 (map process-year-data lineData)))))))
+    
+   
+    ;; (let [test1 (map addIndex (partition 31 (map process-year-data lineData)))]
+    ;;   (let [test2 (map conjIndex (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) test1))]
+    ;;     (println "Total Temperature for each month [Index is the year]: " test2)))
+    
+    ;; TEST ON:
+    ;; test1=((377 -1454 1361 923 3133 3830 5241 4988 2901 3633 1162 1481) (1242 -2279 2016 1493 3195 3411 4933 5334 2720 3068 592 1182))
+    ;; (let [test1 (partition 12 (map (fn [num] (divideNumberMonth num)) (flatten (map addIndex (partition 31 (map process-year-data lineData))))))]
+    ;;   (let [test2 (map conjIndex (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) test1))]
+    ;;     (println "Total Mean Temperature for Each month, Each year: " test2)))
+    
+    ;; (let [test3 (map conjIndex (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (partition 12 (map (fn [num] (divideNumberMonth num)) (flatten (map addIndex (partition 31 (map process-year-data lineData))))))))]
+    ;;   (println "TESTING5: " test3)
+    ;;   (println "TESTING6: " (first (first test3)))
+    ;;   (println "TESTING7 MAX: " (apply max (first (first test3))))
+    ;;   (println "TESTING7 MIN: " (apply min (first (first test3))))
+    ;;   (println "TESTING7 MAX POS: " (.indexOf (first (first test3)) (apply max (first (first test3)))))
+    ;;   (println "TESTING7 MIN POS: " (.indexOf (first (first test3)) (apply min (first (first test3)))))
+    ;;   )
+    
+    (let [test4 (map conjIndex (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (partition 12 (map (fn [num] (divideNumberMonth num)) (flatten (map addIndex (partition 31 (map process-year-data lineData))))))))]
+      ;; (println "test4: " test4)
+      ;; (println "flatten: "  (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (flatten test4)))
+      (println "Variations: \n" (map (fn [monthAverage] (getVariations monthAverage)) (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (flatten test4)))))
+    
+    ;;(println "a" (map (fn [monthAverage] (getVariations monthAverage)) ladslads))
+    
+    
+    ;; All one giant list -> Divide all numbers
+    ;; Then split by 12 - orsomethn
+    ;;(println "TESTING3: " (flatten (map addIndex (partition 31 (map process-year-data lineData)))))
+
+    ;; A list of every month's from every year's average 
+    ;;(println "TESTING4: " (map (fn [num] (divideNumberMonth num)) (flatten (map addIndex (partition 31 (map process-year-data lineData))))))
+
+
+    ;;(map (fn [& nums] (apply + nums)) (flatten v1) (flatten v2))
     ;;(println "1.70 Combined: " (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))))
     ;;(println "Coldest Year: " (+ '1772 (.indexOf (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))) (apply min (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData)))))))))
     ;;(println "Warmest Year:" (+ '1772 (.indexOf (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))) (apply max (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData)))))))))
-    
-    
-    ;; (fn [coll] (filter even? coll))
-    
-    ;; (println "1.70 Combined: " (apply map (fn [& nums] (apply divideNumber nums)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))))
-    ;; (println "1.689 Combined: "(apply map (fn [number] (float (/ number 12))) (map process-year-data lineData)))
-    ;;(apply map (fn ...) (map process-year-data lineData))
-    
-    ;; Works - Answer = 2298
-    ;; (println "DIVIDE: " (divideNumber 27576))
-    
 
-    ;;(println "1.7 Combined: " (map #(apply + %) (partition 31 (map first (map process-year-data lineData)))))
-    
-    ;; USE
-    ;; (apply (partial map (fn [& nums] (apply + nums))) (map process-year-data lineData))
-    
-    ;; (map (fn [& nums] (apply + nums)) (flatten v1) (flatten v2) (flatten v3) (flatten v4))
-    
-    
-    ;;(map (fn [& nums] (apply + nums)) (flatten (map process-year-data lineData)))
-    ;;(println "Second Combined: " (vec (first (first (map vector (map process-year-data lineData))))))
+    ;; OG but I think passing managed data is easier
+    ;;(find-mean-temperature-per-month lineData)
 
-
-    ;; (println "Results: " (map (partial apply +) (map vector (map process-year-data lineData))))
-
-    (mapv + [1 2 3] [4 5 6])
-    ;; (mapv + (map vector (map process-year-data lineData)))
-
-    ;; If you would like to find the largest item **within** the vector, you would need
-    ;; to use `apply`
-    ;; (apply max [1 2 3])
-    ;;=> 3
-    ;; If elements are already in a sequence, use apply
-    ;;user=> (apply min [1 2 3 4 3])
-    ;;1
-
-
-    ;; (def first-items
-    ;;   '(32 -15 18 25 87 128 187 177 105 111 78 112))
-    ;; (def second-items
-    ;;   '(21 18 85 76 90 87 567 456 674 283 17 113))
-
-    ;; (def combined
-    ;;   (map vector first-items second-items))
-
-    ;; (println "Combined data:")
-    ;; (println combined)
-
-    ;; (println "Results:")
-    ;; (map (partial apply +) combined)
-
-
-    (find-mean-temperature-per-month lineData)
+    (find-mean-temperature-per-month (map addIndex (partition 31 (map process-year-data lineData))))
 
 
     (loop [currentIndex 1 warmestTemp (drop 2 (nth lineData (- currentIndex 1)))]
@@ -385,12 +406,12 @@
                         ;; Else do not replace & increase counter.
                        (recur warmestTemp (+ currentVectorIndex 1)))
                      warmestTemp))))
-        warmestTemp))))
+        (map (fn [monthDay] (modMonthDay monthDay)) warmestTemp)))))
 
 (defn slurp-1772-file
   "Slurps the 1772toDate.txt file line by line."
   []
-  (println "Warmest Day of Each month: " (read-by-line "src/assignment/test.txt")))
+  (println "Warmest Day for Each Calender Month: " (read-by-line "src/assignment/1772toDate.txt")))
 
 (defn slurp-2019-file
   "Slurps the 2019.txt file line by line."
@@ -421,7 +442,7 @@
   "Initialise the project. Run solution depending on user input."
   []
   (println "Which solution would you like to see?\n
-            Enter '1' for ASCII/Morse Conversion\n
+            Enter '1' for ASCII/Morse Conversion.\n
             Enter '2' for the CET solution.")
   (flush)
   (let [userInput (Integer/parseInt (read-line))]
