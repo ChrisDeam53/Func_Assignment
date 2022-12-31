@@ -1,7 +1,8 @@
 (ns assignment.core
   (:gen-class) 
   (:require [clojure.string :as str]
-            [clojure.set :as cljSet]))
+            [clojure.set :as cljSet]
+            [clojure.spec.alpha :as s]))
 
 ;; RUN CODE:
 ;; Alt+Enter
@@ -34,10 +35,19 @@
 (require '[clojure.string :as str])
 (require '[clojure.set :as cljSet])
 (require '[clojure.java.io :as io])
+(require '[clojure.spec.alpha :as s])
 
 ;; /****************************************************************************************/
 ;; ASCII->Morse & Morse->ASCII solution.
 ;; /****************************************************************************************/
+
+;; (def regex-to-check-morse #"/^[.-]{1,5}(?:[ \t]+[.-]{1,5})*(?:[ \t]+[.-]{1,5}(?:[ \t]+[.-]{1,5})*)*$/")
+(def regex-to-check-morse #"^[\.\-\ ]+$")
+(def regex-to-check-ascii #"[^A-Za-z0-9\s]+")
+
+(s/def ::morse-code-input-validation (s/and string? #(re-matches regex-to-check-morse %)))
+
+(s/def ::string-input-validation (s/and string? #(re-matches regex-to-check-ascii %)))
 
 (def letter-hash-map
   "Define strings to their respective Morse counterparts."
@@ -53,51 +63,56 @@
 
 (defn translate-character-to-morse 
   "Performs the get method on the character found inside the letter-hash-map.
-   Parameters: currentCharacter - Individual Character in the string to perform the get method."
-  [currentCharacter]
-  (let [returnString (get letter-hash-map currentCharacter)]
-    (if (str/includes? returnString " ")
+   Parameters: current-character - Individual Character in the string to perform the get method."
+  [current-character]
+  (let [return-string (get letter-hash-map current-character)]
+    (if (str/includes? return-string " ")
       ;; Append 5x spaces to the end, totals to 7x spaces between words.
-      (str (str/trim (get letter-hash-map currentCharacter)) "    ")
+      (str (str/trim (get letter-hash-map current-character)) "    ")
       ;; Append 2x spaces to the end of each morse character returned if not a space.
-      (str returnString "   "))))
+      (str return-string "   "))))
 
 (defn translate-character-and-space-to-ascii 
   "Performs string manipulation to split two characters separated by a space.
-   Parameters: currentString - Individual String in the string to perform the get method."
-  [currentString]
-  (let [firstCharacter (first currentString)]
-    (let [lastCharacter (last currentString)]
+   Parameters: current-string - Individual String in the string to perform the get method."
+  [current-string]
+  (let [first-character (first current-string)]
+    (let [last-character (last current-string)]
       ;; Get the characters *before* and *after* the space & return with a singular space.
-      (str (get morse-hash-map firstCharacter) " " (get morse-hash-map lastCharacter)))))
+      (str (get morse-hash-map first-character) " " (get morse-hash-map last-character)))))
 
 (defn translate-character-to-ascii 
   "Performs the get method on the character found inside the letter-hash-map.
-   Parameters: currentCharacter - Individual Character in the string to perform the get method."
-  [currentCharacter]
-  (if (str/includes? currentCharacter " ")
+   Parameters: current-character - Individual Character in the string to perform the get method."
+  [current-character]
+  (if (str/includes? current-character " ")
     ;; String contains morse spaces (7x spaces).
-    (let [returnString (str/split currentCharacter #"       ")]
+    (let [return-string (str/split current-character #"       ")]
       ;; As Regex includes the 7x spaces, string must be split to return properly.
-      (translate-character-and-space-to-ascii returnString))
+      (translate-character-and-space-to-ascii return-string))
     ;; No spaces. return as normal.
-    (get morse-hash-map currentCharacter)))
+    (get morse-hash-map current-character)))
 
 (defn get-character 
   "Gets the respective alternate character for the string inputted & returns these mapped values.
-   Parameters: enteredString - The string to be converted to its appropriate counterpart."
-  [enteredString]
+   Parameters: entered-string - The string to be converted to its appropriate counterpart."
+  [entered-string]
+  ;;(println "Dogshit spec A " (s/valid? ::string-input-validation entered-string))
+  ;;(println "Dogshit spec A " (s/valid? ::morse-code-input-validation entered-string))
+  
+  ;;(if (or (s/valid? ::string-input-validation entered-string) (s/valid? ::morse-code-input-validation entered-string))
     ;; Covert all characters to uppercase for uniformty.
-  (let [characterVectorUpper (str/upper-case enteredString)]
-    ;; Use Regex to get each individual character, including spaces. Returns a vector.
-    (if (or (= (get characterVectorUpper 0) \.) (= (get characterVectorUpper 0) \-))
-      (let [characterVector (str/split characterVectorUpper #"\s+(?!\s{3})(?<!\s{4})")]
-        ;; String entered is Morse.
-        ;; Join all empty spaces between. Example: "A B" -> "AB".
-        (str/join "" (map translate-character-to-ascii characterVector)))
-      (let [characterVector (str/split characterVectorUpper #"")]
-        ;; String entered is ASCII.
-        (apply str(map translate-character-to-morse characterVector))))))
+    (let [character-vector-upper (str/upper-case entered-string)]
+      ;; Use Regex to get each individual character, including spaces. Returns a vector.
+      (if (or (= (get character-vector-upper 0) \.) (= (get character-vector-upper 0) \-))
+        (let [character-vector (str/split character-vector-upper #"\s+(?!\s{3})(?<!\s{4})")]
+          ;; String entered is Morse.
+          ;; Join all empty spaces between. Example: "A B" -> "AB".
+          (str/join "" (map translate-character-to-ascii character-vector)))
+        (let [character-vector (str/split character-vector-upper #"")]
+          ;; String entered is ASCII.
+          (apply str(map translate-character-to-morse character-vector))))))
+  ;;(str "Invalid Input. Only valid A-Z,a-z,0-9 characters OR . - characters valid."))
 
 ;; EXAMPLE STRINGS:
 ;; Hello World
@@ -108,12 +123,12 @@
   []
   (println "Please enter a valid ASCII string or Morse Code.")
   (flush)
-  (let [enteredString (str (read-line))]
-    (println(get-character enteredString))))
+  (let [entered-string (str (read-line))]
+    (println(get-character entered-string))))
 
 ;; /****************************************************************************************/
 ;; CET Solution.
-;; NOTE: Uses the "Legacy" data for: 1772toDate, 2019, 2020, 2021 & 2022 text files.
+;; NOTE: Uses the "Legacy" data for: the 1772toDate file.
 ;; /****************************************************************************************/
 
 (def months-map
@@ -131,98 +146,92 @@
   { 1 {0 0}, 2 {0 0}, 3 {0 0}, 4 {0 0}, 5 {0 0}, 6 {0 0}, 7 {0 0}, 8 {0 0},
    9 {0 0}, 10 {0 0}, 11 {0 0}, 12 {0 0}})
 
-
 (defn update-current-map
   "Updates the current daily map key and then the value of the KVP."
-  [mappedMonth mappedMonthDay currentDay currentTemperature]
-  (let [updatedMap (cljSet/rename-keys mappedMonth {mappedMonthDay, currentDay})]
-    (assoc updatedMap currentDay currentTemperature)))
+  [mapped-month mapped-month-day current-day current-temperature]
+  (let [updatedMap (cljSet/rename-keys mapped-month {mapped-month-day, current-day})]
+    (assoc updatedMap current-day current-temperature)))
 
 ;; 1.	Find the warmest day for each calendar month 
 ;; NOTE: External sources (non-Clojure documentation) have been referenced.
 ;; REFERENCE: https://stackoverflow.com/questions/28408743/how-do-you-destructure-a-map-into-key-value-pairs-without-knowing-the-keys-in-cl
 ;; ^ Reference used: Post by Thumbnail - Answered Feb 9, 2015 at 11:53. (Used from map to mappedMonth)
 ;; For JAN -> 45, Day 10
-(defn find-warmest-day-in-month
-  "TODO:"
-  [currentDay currentMonth currentTemperature]
-  (let [mappedMonth (get warmest-day-each-month (- currentMonth 2))]
-    (if (not= mappedMonth nil)
-      (map (fn [[mappedMonthDay]]
-             (update-current-map mappedMonth mappedMonthDay currentDay currentTemperature))
-           mappedMonth))))
+(defn apply-current-month-to-data
+  "Applies the current month into the data structure:"
+  [current-day current-month current-temperature]
+  (let [mapped-month (get warmest-day-each-month (- current-month 2))]
+    (if (not= mapped-month nil)
+      (map (fn [[mapped-month-day]]
+             (update-current-map mapped-month mapped-month-day current-day current-temperature))
+           mapped-month))))
 
-;; 2.	Find the warmest and coldest years.
 (defn process-year-data
-  "TODO"
-  [yearlyData]
-  (->> yearlyData
+  "Given a vector of Hashmaps, only retrieve the mapped values."
+  [yearly-data]
+  (->> yearly-data
        (drop 2)
        (map (comp second first))))
 
-(defn addIndex
- "TODO"
+(defn add-index
+ "Adds the current index values together and maps these together.
+  Parameters: data - Sequence containing indexed value of every month for that year."
   [data]
   (apply (partial map (fn [& nums] (apply + nums))) data))
 
-(defn conjIndex
-  "TODO"
+(defn conj-index
+  "Conjoins all the indexed values into one list. (All first indexes together, all seconds together etc.)
+   Parameters: data - Sequence containing the mean values of each month per year."
   [data]
   (apply (partial map (fn [& nums] (conj nums))) data))
 
-(defn divideNumberMonth
-  "TODO"
+(defn divide-number-month
+  "Divides the current number by 31 & parse to float.
+   Parameters: number - The number to be divided."
   [number]
   (float (/ number 31)))
 
-(defn divideNumberYear
-  "TODO"
+(defn divide-number-year
+  "Divides the current number by 12 & parse to float.
+   Parameters: number - The number to be divided."
   [number]
   (float (/ number 12)))
 
-(defn divideNumberVar
-  "TODO"
-  [number divideBy]
-  (float (/ number divideBy)))
+(defn divide-number-var
+  "Divides the current number by another & parse to float.
+   Parameters: number - The number to be divided."
+  [number divide-by]
+  (float (/ number divide-by)))
 
 
 ;; Reference when finding the "Closest Variation to the Mean:"
 ;; https://groups.google.com/g/clojure/c/quEzEM_ndCY
 ;; Post by: Nicolas Oury On Sat, Sep 25, 2010 at 3:40 PM.
-(defn getVariations
-  "TODO"
-  [data meanDataList]
-  (let [maxMonthAverage (apply max data)]
-    (let [maxMonthIndex (.indexOf data (apply max data))]
-      (let [closestVariationToMean (apply min-key #(Math/abs (- % meanDataList)) data)]
-        (let [closestVariationToMeanIndex (.indexOf data (apply min-key #(Math/abs (- % meanDataList)) data))]
-          (str "Furthest Month Instance(year) to the mean: " (+ '1772 maxMonthIndex) " |  Max Average Temp: " maxMonthAverage
-               "    Closest Month Instance(year) to the mean: " (+ '1772 closestVariationToMeanIndex) " |  Min Average Temp:" closestVariationToMean "\n"))))))
+(defn get-variations
+  "Calculates the closest and furthest value from the mean for that current month.
+   Parameters: data - The current month and all the average values for all years.
+   mean-data-list - The current mean for ALL of that month."
+  [data mean-data-list]
+  (let [max-month-average (apply min data)]
+    (let [max-month-index (.indexOf data (apply min data))]
+      (let [closest-variation-to-mean (apply min-key #(Math/abs (- % mean-data-list)) data)]
+        (let [closest-variation-to-meanIndex (.indexOf data (apply min-key #(Math/abs (- % mean-data-list)) data))]
+          (str "Furthest Month Instance(year) to the mean: " (+ '1772 max-month-index) " |  Max Average Temp: " max-month-average
+               "    Closest Month Instance(year) to the mean: " (+ '1772 closest-variation-to-meanIndex) " |  Min Average Temp:" closest-variation-to-mean "\n"))))))
 
-(defn modMonthDay
-  "TODO"
+(defn mod-month-day
+  "Mods the current Hashmap value by 31 so that a correct day is returned.
+   Parameters: data - The hashmap containing the day & temperature."
   [data]
   {(mod (Integer/parseInt (subs (str (keys data)) 1 (- (count (str (keys data))) 1))) 31) (get data (Integer/parseInt (subs (str (keys data)) 1 (- (count (str (keys data))) 1))))})
 
-;; (apply min-key #(abs (- % 136)) xs)
-
-;; 3.	Find the mean temperature for each calendar month
-;; (the average for all Mays, for example) and the instance
-;; of each month that has the greatest and smallest variation
-;; from that mean.
-(defn find-mean-temperature-per-month
-"TOOD"
-  [lineData]
-  ;;(println "LineData for 2.3: " lineData)
-  )
-
 (defn set-data
   "DOING"
-  [currentPos currentValue]
-  ;; (if (= currentPos 1)
+  [current-pos current-value]
+  ;; (if (= current-pos 1)
   ;;   ;; Year Column
-  ;;   (println "Current Year:" (Integer/parseInt (apply str (take 6 currentValue)))))
-  (if (= currentPos 2)
+  ;;   (println "Current Year:" (Integer/parseInt (apply str (take 6 current-value)))))
+  (if (= current-pos 2)
     ;; Day column
     (cond
       (not= current-day 31)
@@ -231,212 +240,115 @@
       (= current-day 31)
       ;; Else day is 31 - Sets the value of atom to newval without regard for the current value. Returns newval.
       (reset! current-day 1)))
-  (if (> currentPos 2)
+  (if (> current-pos 2)
     ;; Month Column
-    ;; (println "Current Month:" (get months-map currentPos) "Data: " currentValue))
-    (get months-map currentPos))
+    ;; (println "Current Month:" (get months-map current-pos) "Data: " current-value))
+    (get months-map current-pos))
   
   
   ;; Return a new collection consisting of the currentMonth applied to the start. Which has been transformed into a sequence.
-  (into (find-warmest-day-in-month @current-day currentPos (Integer/parseInt (apply str currentValue))) (seq [(- currentPos 2)])))
+  (into (apply-current-month-to-data @current-day current-pos (Integer/parseInt (apply str current-value))) (seq [(- current-pos 2)])))
 
 (defn check-line-data-1772
   "Obtains data from the line.
-   Parameters: currentLine - The current line that the reader has parsed."
-  [currentLine]
-  (loop [currentPos 1 numberLine currentLine dailyValuesVector []]
-        (if-not (= currentPos 15)
-          (let [currentValue (take 1 numberLine)]
-            (let [currentDayData (set-data currentPos currentValue)]
+   Parameters: current-line - The current line that the reader has parsed."
+  [current-line]
+  (loop [current-pos 1 number-line current-line daily-values-vector []]
+        (if-not (= current-pos 15)
+          (let [current-value (take 1 number-line)]
+            (let [current-day-data (set-data current-pos current-value)]
               ;; Data format: (MONTH {Day Temperature})
               ;; (1 {1 23})
               ;; Use recur in tail position | Increments position & drops first item.
-              (recur (+ currentPos 1) (drop 1 numberLine) (conj dailyValuesVector (last currentDayData)))))
-          dailyValuesVector)))
+              (recur (+ current-pos 1) (drop 1 number-line) (conj daily-values-vector (last current-day-data)))))
+          daily-values-vector)))
+
+;; 2.	Find the warmest and coldest years.
+(defn find-warmest-and-coldest-years
+  "Finds the warmest and coldest years using the total averages of each year."
+  [line-data]
+  (let [total-average (map (fn [& num] (apply divide-number-month num)) (map #(apply + %) (map add-index (partition 31 (map process-year-data line-data)))))]
+    (let [year-average (map (fn [& num] (apply divide-number-year num)) total-average)]
+        ;; (println "Year Average: " year-average)
+      (println "Coldest Year: " (+ '1772 (.indexOf year-average (apply min year-average))) "with a temperature of: " (apply min year-average))
+      (println "Warmest Year: " (+ '1772 (.indexOf year-average (apply max year-average))) "with a temperature of: " (apply max year-average)))))
+
+;; 3.	Find the mean temperature for each calendar month
+;; (the average for all Mays, for example) and the instance
+;; of each month that has the greatest and smallest variation
+;; from that mean.
+(defn find-mean-for-each-month-and-variations-from-mean
+  "Finds the mean value for each month & smallest/greatest variation from that mean value."
+  [line-data]
+  (let [divisor-days (* 31 (count (map add-index (partition 31 (map process-year-data line-data)))))]
+    (let [test1 (map (fn [num] (divide-number-var num divisor-days)) (add-index (map add-index (partition 31 (map process-year-data line-data)))))]
+      (let [divisor-years (count (map add-index (partition 31 (map process-year-data line-data))))]
+        (let [test2 (map (fn [num] (divide-number-var num divisor-years)) test1)]
+          (println "Mean Temperature for Each Calender Month (All of that month):" test2)
+          (let [test3 (map conj-index (partition (count (map add-index (partition 31 (map process-year-data line-data)))) (partition 12 (map (fn [num] (divide-number-month num)) (flatten (map add-index (partition 31 (map process-year-data line-data))))))))]
+            (println "Variations: \n" (map (fn [month-average test2] (get-variations month-average test2)) (partition (count (map add-index (partition 31 (map process-year-data line-data)))) (flatten test3)) test2))))))))
 
 
 ;; Reference: https://stackoverflow.com/questions/40370240/easy-way-to-change-specific-list-item-in-list
 ;; Inspired by: Mark Fisher's post - Answered Nov 3, 2016 at 9:45.
 (defn replace-value
   "Replaces the old Key:Value pair (hashmap) with the newer version, populates the rest of the structure with original values."
-  [dayTemperatureList currentVectorIndex currentItem]
-  (loop [newVec [] oldList dayTemperatureList]
-    (if (seq oldList)
+  [day-temperature-list current-vector-index current-item]
+  (loop [new-vec [] old-list day-temperature-list]
+    (if (seq old-list)
       ;; Return a seq on the collection.
-      (if (= (count newVec) currentVectorIndex)
-        (recur (conj newVec currentItem) (rest oldList))
-        (recur (conj newVec (first oldList)) (rest oldList))) 
-    (apply list newVec))))
+      (if (= (count new-vec) current-vector-index)
+        (recur (conj new-vec current-item) (rest old-list))
+        (recur (conj new-vec (first old-list)) (rest old-list))) 
+    (apply list new-vec))))
 
+
+;; 1.	Find the warmest day for each calendar month (e.g. the warmest January day, warmest February day and so on) .
 (defn read-by-line
   "Reads the file line by line - As opposed to the entire file at once.
-   Parameters: fileName - The name of the entered file to be read."
-  [fileName]
-  (let [lineData
-        (with-open [reader (io/reader fileName)]
-          (reduce (fn [lineData line]
+   Parameters: file-name - The name of the entered file to be read."
+  [file-name]
+  (let [line-data
+        (with-open [reader (io/reader file-name)]
+          (reduce (fn [line-data line]
                     ;; Use reduce with function of two arguments - Take first value for accumulated result.
                     ;; Take sequence of elements & apply function to that result & then to each element etc.
                     ;; Returns the accumulated result.
-                    (let [currentLine (str/trimr (str/triml line))
-                          splitLine (str/split currentLine #"\s+")
-                          numberLine (map parse-long splitLine)]
-                      (conj lineData (check-line-data-1772 numberLine))))
+                    (let [current-line (str/trimr (str/triml line))
+                          split-line (str/split current-line #"\s+")
+                          number-line (map parse-long split-line)]
+                      (conj line-data (check-line-data-1772 number-line))))
                   ;; Define structure as a vector.
                   []
                   (line-seq reader)))]
-    ;; Note: The position of the values in the vector represent the month.
-    ;; 1st position = Jan, 2nd Position = Feb etc.
-
-    ;; (get-year-data lineData)
-
-    ;; OG Working:
-    ;; (println "ZZZZZZ: " (map process-year-data lineData))
-    ;; Use the return result from this in part 3
-    ;;(println "Combined: " (map vector (map process-year-data lineData)))
-    ;; (println "1.5 Combined: " (partition 31 (map process-year-data lineData)))
-
-    ;; Works - But it does it for all 62 values
-    ;; (println "1.6 Combined: " (apply (partial map (fn [& nums] (apply + nums))) (map process-year-data lineData)))
-    ;; (println "1.65 Combined: " (partition 31 (apply (partial map (fn [& nums] (apply + nums))) (map process-year-data lineData))))
-
-
-    ;; (println "1.66 Combined: " (map addIndex (partition 31 (map process-year-data lineData))))
-    ;;(println "1.67 Combined: " (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData)))))
-    ;; (println "1.68 Combined:" (apply (partial map (fn [& nums] (divideNumberYear nums))) (map process-year-data lineData)))
-    ;; (println "1.69 Combined:"  (map inc [1 2 3 4 5]))
-
-    ;; OG
-    ;; (println "1.70 Combined: " (map (fn [& num] (apply divideNumberMonth num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))))
-    ;; (println "1.71 Combined: " (map addIndex (partition 31 (map process-year-data lineData))))
-    ;; (println "1.71.1 Combined: " (count (map addIndex (partition 31 (map process-year-data lineData)))))
-
-    ;; (println "1.72 Combined: " (addIndex (map addIndex (partition 31 (map process-year-data lineData)))))
-    ;; (println "1.73 Combined: " (map (fn [& num] (apply divideNumberMonth num)) (addIndex (map addIndex (partition 31 (map process-year-data lineData))))))
-    ;; (println "1.74 Combined: " (map (fn [& num] (apply divideNumberMonth num)) (addIndex (map addIndex (partition 31 (map process-year-data lineData))))))
-
-    ;; This is dividing by 31, it should be 31 times count
-    ;; (let [test1 (map (fn [& num] (apply divideNumberMonth num)) (addIndex (map addIndex (partition 31 (map process-year-data lineData)))))]
-    ;;   ;; This should divide by the total count
-    ;;   (let [test2 (map (fn [& num] (apply divideNumberVar num)) test1)]
-    ;;     (println "test2: " test2)))
-
-
-
-    ;; test2 (map (fn [num] (divideNumberVar num divisorDays)) test1)])
-
-
-
-
-    (let [totalAverage (map (fn [& num] (apply divideNumberMonth num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData)))))]
-      (let [yearAverage (map (fn [& num] (apply divideNumberYear num)) totalAverage)]
-        ;; (println "Year Average: " yearAverage)
-        (println "Coldest Year: " (+ '1772 (.indexOf yearAverage (apply min yearAverage))) "with a temperature of: " (apply min yearAverage))
-        (println "Warmest Year: " (+ '1772 (.indexOf yearAverage (apply max yearAverage))) "with a temperature of: " (apply max yearAverage))))
-
-    (let [divisorDays (* 31 (count (map addIndex (partition 31 (map process-year-data lineData)))))]
-      (let [test1 (map (fn [num] (divideNumberVar num divisorDays)) (addIndex (map addIndex (partition 31 (map process-year-data lineData)))))]
-        (let [divisorYears (count (map addIndex (partition 31 (map process-year-data lineData))))]
-          (let [test2 (map (fn [num] (divideNumberVar num divisorYears)) test1)]
-            (println "Mean Temperature for Each Calender Month (All of that month):" test2)
-            (let [test3 (map conjIndex (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (partition 12 (map (fn [num] (divideNumberMonth num)) (flatten (map addIndex (partition 31 (map process-year-data lineData))))))))]
-              (println "Variations: \n" (map (fn [monthAverage test2] (getVariations monthAverage test2)) (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (flatten test3)) test2)))))))
-
-    ;; (println "TESTING:" (map addIndex (partition 31 (map process-year-data lineData))))
-    
-    ;; (println "TESTING2: " (map addIndex (partition 31 (map process-year-data lineData))))
-    ;; (println "TESTING3: " (flatten (map addIndex (partition 31 (map process-year-data lineData)))))
-    ;; (println "TESTING4: " (partition 12 (map (fn [num] (divideNumberMonth num)) (flatten (map addIndex (partition 31 (map process-year-data lineData)))))))
-    
-   
-    ;; (let [test1 (map addIndex (partition 31 (map process-year-data lineData)))]
-    ;;   (let [test2 (map conjIndex (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) test1))]
-    ;;     (println "Total Temperature for each month [Index is the year]: " test2)))
-    
-    ;; TEST ON:
-    ;; test1=((377 -1454 1361 923 3133 3830 5241 4988 2901 3633 1162 1481) (1242 -2279 2016 1493 3195 3411 4933 5334 2720 3068 592 1182))
-    ;; (let [test1 (partition 12 (map (fn [num] (divideNumberMonth num)) (flatten (map addIndex (partition 31 (map process-year-data lineData))))))]
-    ;;   (let [test2 (map conjIndex (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) test1))]
-    ;;     (println "Total Mean Temperature for Each month, Each year: " test2)))
-    
-    ;; (let [test3 (map conjIndex (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (partition 12 (map (fn [num] (divideNumberMonth num)) (flatten (map addIndex (partition 31 (map process-year-data lineData))))))))]
-    ;;   (println "TESTING5: " test3)
-    ;;   (println "TESTING6: " (first (first test3)))
-    ;;   (println "TESTING7 MAX: " (apply max (first (first test3))))
-    ;;   (println "TESTING7 MIN: " (apply min (first (first test3))))
-    ;;   (println "TESTING7 MAX POS: " (.indexOf (first (first test3)) (apply max (first (first test3)))))
-    ;;   (println "TESTING7 MIN POS: " (.indexOf (first (first test3)) (apply min (first (first test3)))))
-    ;;   )
-    
-    ;; (let [test4 (map conjIndex (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (partition 12 (map (fn [num] (divideNumberMonth num)) (flatten (map addIndex (partition 31 (map process-year-data lineData))))))))]
-    ;;   ;; (println "test4: " test4)
-    ;;   ;; (println "flatten: "  (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (flatten test4)))
-    ;;   (println "Variations: \n" (map (fn [monthAverage] (getVariations monthAverage)) (partition (count (map addIndex (partition 31 (map process-year-data lineData)))) (flatten test4)))))
-    
-    ;;(println "a" (map (fn [monthAverage] (getVariations monthAverage)) ladslads))
     
     
-    ;; All one giant list -> Divide all numbers
-    ;; Then split by 12 - orsomethn
-    ;;(println "TESTING3: " (flatten (map addIndex (partition 31 (map process-year-data lineData)))))
+    (find-warmest-and-coldest-years line-data)
+    
+    (find-mean-for-each-month-and-variations-from-mean line-data)
 
-    ;; A list of every month's from every year's average 
-    ;;(println "TESTING4: " (map (fn [num] (divideNumberMonth num)) (flatten (map addIndex (partition 31 (map process-year-data lineData))))))
-
-
-    ;;(map (fn [& nums] (apply + nums)) (flatten v1) (flatten v2))
-    ;;(println "1.70 Combined: " (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))))
-    ;;(println "Coldest Year: " (+ '1772 (.indexOf (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))) (apply min (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData)))))))))
-    ;;(println "Warmest Year:" (+ '1772 (.indexOf (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData))))) (apply max (map (fn [& num] (apply divideNumber num)) (map #(apply + %) (map addIndex (partition 31 (map process-year-data lineData)))))))))
-
-    ;; OG but I think passing managed data is easier
-    ;;(find-mean-temperature-per-month lineData)
-
-    (find-mean-temperature-per-month (map addIndex (partition 31 (map process-year-data lineData))))
-
-
-    (loop [currentIndex 1 warmestTemp (drop 2 (nth lineData (- currentIndex 1)))]
-      (if-not (= currentIndex (count lineData))
-        (let [currentVector (drop 2 (nth lineData currentIndex))]
+    (loop [current-index 1 warmest-temp (drop 2 (nth line-data (- current-index 1)))]
+      (if-not (= current-index (count line-data))
+        (let [current-vector (drop 2 (nth line-data current-index))]
             ;; As vectors are associative, use get-in
             ;; Gets the current nested Vector.
             ;; Result of the inner loop used in the outer.
-          (recur (+ currentIndex 1)
-                 (loop [warmestTemp warmestTemp currentVectorIndex 1]
-                   (if-not (= currentVectorIndex 12)
+          (recur (+ current-index 1)
+                 (loop [warmest-temp warmest-temp current-vector-index 1]
+                   (if-not (= current-vector-index 12)
                       ;; Whilst month is December or any month beforehand.  
-                     (if (> (get (nth currentVector (- currentVectorIndex 1)) (+ currentIndex 1)) (get (nth warmestTemp (- currentVectorIndex 1)) (first (keys (nth warmestTemp (- currentVectorIndex 1))))))
+                     (if (> (get (nth current-vector (- current-vector-index 1)) (+ current-index 1)) (get (nth warmest-temp (- current-vector-index 1)) (first (keys (nth warmest-temp (- current-vector-index 1))))))
                         ;; If the current value in the vector is greater than the old value then replace.
-                       (recur (replace-value warmestTemp (- currentVectorIndex 1) (nth currentVector (- currentVectorIndex 1))) (+ currentVectorIndex 1))
+                       (recur (replace-value warmest-temp (- current-vector-index 1) (nth current-vector (- current-vector-index 1))) (+ current-vector-index 1))
                         ;; Else do not replace & increase counter.
-                       (recur warmestTemp (+ currentVectorIndex 1)))
-                     warmestTemp))))
-        (map (fn [monthDay] (modMonthDay monthDay)) warmestTemp)))))
+                       (recur warmest-temp (+ current-vector-index 1)))
+                     warmest-temp))))
+        (map (fn [month-day] (mod-month-day month-day)) warmest-temp)))))
 
 (defn slurp-1772-file
   "Slurps the 1772toDate.txt file line by line."
   []
   (println "Warmest Day for Each Calender Month: " (read-by-line "src/assignment/test.txt")))
-
-(defn slurp-2019-file
-  "Slurps the 2019.txt file line by line."
-  []
-  (println (slurp "src/assignment/2019.txt")))
-
-(defn slurp-2020-file
-  "Slurps the 2020.txt file line by line."
-  []
-  (println (slurp "src/assignment/2020.txt")))
-
-(defn slurp-2021-file
-  "Slurps the 2021.txt file line by line."
-  []
-  (println (slurp "src/assignment/2021.txt")))
-
-(defn slurp-2022-file
-  "Slurps the 2022.txt file line by line."
-  []
-  (println (slurp "src/assignment/2022.txt")))
 
 (defn initialise-cet-solution 
   "Initialise the solution. Slurp the respective text files."
