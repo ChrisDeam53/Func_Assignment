@@ -41,9 +41,8 @@
 ;; ASCII->Morse & Morse->ASCII solution.
 ;; /****************************************************************************************/
 
-;; (def regex-to-check-morse #"/^[.-]{1,5}(?:[ \t]+[.-]{1,5})*(?:[ \t]+[.-]{1,5}(?:[ \t]+[.-]{1,5})*)*$/")
 (def regex-to-check-morse #"^[\.\-\ ]+$")
-(def regex-to-check-ascii #"[^A-Za-z0-9\s]+")
+(def regex-to-check-ascii #"^[a-zA-Z0-9\ ]+$")
 
 (s/def ::morse-code-input-validation (s/and string? #(re-matches regex-to-check-morse %)))
 
@@ -97,10 +96,7 @@
   "Gets the respective alternate character for the string inputted & returns these mapped values.
    Parameters: entered-string - The string to be converted to its appropriate counterpart."
   [entered-string]
-  ;;(println "Dogshit spec A " (s/valid? ::string-input-validation entered-string))
-  ;;(println "Dogshit spec A " (s/valid? ::morse-code-input-validation entered-string))
-  
-  ;;(if (or (s/valid? ::string-input-validation entered-string) (s/valid? ::morse-code-input-validation entered-string))
+  (if (or (s/valid? ::string-input-validation entered-string) (s/valid? ::morse-code-input-validation entered-string))
     ;; Covert all characters to uppercase for uniformty.
     (let [character-vector-upper (str/upper-case entered-string)]
       ;; Use Regex to get each individual character, including spaces. Returns a vector.
@@ -111,8 +107,8 @@
           (str/join "" (map translate-character-to-ascii character-vector)))
         (let [character-vector (str/split character-vector-upper #"")]
           ;; String entered is ASCII.
-          (apply str(map translate-character-to-morse character-vector))))))
-  ;;(str "Invalid Input. Only valid A-Z,a-z,0-9 characters OR . - characters valid."))
+          (apply str(map translate-character-to-morse character-vector)))))
+  (str "Invalid Input. Only valid A-Z,a-z,0-9 characters OR . - characters valid.")))
 
 ;; EXAMPLE STRINGS:
 ;; Hello World
@@ -130,6 +126,11 @@
 ;; CET Solution.
 ;; NOTE: Uses the "Legacy" data for: the 1772toDate file.
 ;; /****************************************************************************************/
+
+(s/def ::data-number int?)
+(s/def ::does-file-exist #(.exists (io/file %)))
+(s/def ::is-file-valid ::does-file-exist)
+
 
 (def months-map
   "Define each month to a value."
@@ -149,6 +150,7 @@
 (defn update-current-map
   "Updates the current daily map key and then the value of the KVP."
   [mapped-month mapped-month-day current-day current-temperature]
+  {:pre [s/valid? ::data-number mapped-month s/valid? ::data-number mapped-month-day ::data-number current-day ::data-number current-temperature]}
   (let [updatedMap (cljSet/rename-keys mapped-month {mapped-month-day, current-day})]
     (assoc updatedMap current-day current-temperature)))
 
@@ -160,6 +162,7 @@
 (defn apply-current-month-to-data
   "Applies the current month into the data structure:"
   [current-day current-month current-temperature]
+  {:pre [s/valid? ::data-number current-day s/valid? ::data-number current-month ::data-number current-temperature]}
   (let [mapped-month (get warmest-day-each-month (- current-month 2))]
     (if (not= mapped-month nil)
       (map (fn [[mapped-month-day]]
@@ -177,30 +180,35 @@
  "Adds the current index values together and maps these together.
   Parameters: data - Sequence containing indexed value of every month for that year."
   [data]
+  {:pre [s/valid? ::data-number data]}
   (apply (partial map (fn [& nums] (apply + nums))) data))
 
 (defn conj-index
   "Conjoins all the indexed values into one list. (All first indexes together, all seconds together etc.)
    Parameters: data - Sequence containing the mean values of each month per year."
   [data]
+  {:pre [s/valid? ::data-number data]}
   (apply (partial map (fn [& nums] (conj nums))) data))
 
 (defn divide-number-month
   "Divides the current number by 31 & parse to float.
    Parameters: number - The number to be divided."
   [number]
+  {:pre [s/valid? ::data-number number]}
   (float (/ number 31)))
 
 (defn divide-number-year
   "Divides the current number by 12 & parse to float.
    Parameters: number - The number to be divided."
   [number]
+  {:pre [s/valid? ::data-number number]}
   (float (/ number 12)))
 
 (defn divide-number-var
   "Divides the current number by another & parse to float.
    Parameters: number - The number to be divided."
   [number divide-by]
+  {:pre [s/valid? ::data-number number s/valid? ::data-number divide-by]}
   (float (/ number divide-by)))
 
 
@@ -242,7 +250,6 @@
       (reset! current-day 1)))
   (if (> current-pos 2)
     ;; Month Column
-    ;; (println "Current Month:" (get months-map current-pos) "Data: " current-value))
     (get months-map current-pos))
   
   
@@ -302,53 +309,57 @@
         (recur (conj new-vec (first old-list)) (rest old-list))) 
     (apply list new-vec))))
 
-
-;; 1.	Find the warmest day for each calendar month (e.g. the warmest January day, warmest February day and so on) .
 (defn read-by-line
   "Reads the file line by line - As opposed to the entire file at once.
    Parameters: file-name - The name of the entered file to be read."
   [file-name]
-  (let [line-data
-        (with-open [reader (io/reader file-name)]
-          (reduce (fn [line-data line]
-                    ;; Use reduce with function of two arguments - Take first value for accumulated result.
-                    ;; Take sequence of elements & apply function to that result & then to each element etc.
-                    ;; Returns the accumulated result.
-                    (let [current-line (str/trimr (str/triml line))
-                          split-line (str/split current-line #"\s+")
-                          number-line (map parse-long split-line)]
-                      (conj line-data (check-line-data-1772 number-line))))
-                  ;; Define structure as a vector.
-                  []
-                  (line-seq reader)))]
-    
-    
-    (find-warmest-and-coldest-years line-data)
-    
-    (find-mean-for-each-month-and-variations-from-mean line-data)
+  (if (not (s/valid? ::is-file-valid file-name))
+    (println "File is invalid.")
+    (let [line-data
+          (with-open [reader (io/reader file-name)]
+            (reduce (fn [line-data line]
+                      ;; Use reduce with function of two arguments - Take first value for accumulated result.
+                      ;; Take sequence of elements & apply function to that result & then to each element etc.
+                      ;; Returns the accumulated result.
+                      (let [current-line (str/trimr (str/triml line))
+                            split-line (str/split current-line #"\s+")
+                            number-line (map parse-long split-line)]
+                        (conj line-data (check-line-data-1772 number-line))))
+                    ;; Define structure as a vector.
+                    []
+                    (line-seq reader)))]
+      line-data)))
 
-    (loop [current-index 1 warmest-temp (drop 2 (nth line-data (- current-index 1)))]
-      (if-not (= current-index (count line-data))
-        (let [current-vector (drop 2 (nth line-data current-index))]
-            ;; As vectors are associative, use get-in
-            ;; Gets the current nested Vector.
-            ;; Result of the inner loop used in the outer.
-          (recur (+ current-index 1)
-                 (loop [warmest-temp warmest-temp current-vector-index 1]
-                   (if-not (= current-vector-index 12)
-                      ;; Whilst month is December or any month beforehand.  
-                     (if (> (get (nth current-vector (- current-vector-index 1)) (+ current-index 1)) (get (nth warmest-temp (- current-vector-index 1)) (first (keys (nth warmest-temp (- current-vector-index 1))))))
-                        ;; If the current value in the vector is greater than the old value then replace.
-                       (recur (replace-value warmest-temp (- current-vector-index 1) (nth current-vector (- current-vector-index 1))) (+ current-vector-index 1))
-                        ;; Else do not replace & increase counter.
-                       (recur warmest-temp (+ current-vector-index 1)))
-                     warmest-temp))))
-        (map (fn [month-day] (mod-month-day month-day)) warmest-temp)))))
+;; 1.	Find the warmest day for each calendar month (e.g. the warmest January day, warmest February day and so on) .
+(defn find-warmest-and-coldest-day-for-each-month
+  "TODO"
+  [line-data]
+  (loop [current-index 1 warmest-temp (drop 2 (nth line-data (- current-index 1)))]
+    (if-not (= current-index (count line-data))
+      (let [current-vector (drop 2 (nth line-data current-index))]
+          ;; As vectors are associative, use get-in
+          ;; Gets the current nested Vector.
+          ;; Result of the inner loop used in the outer.
+        (recur (+ current-index 1)
+              (loop [warmest-temp warmest-temp current-vector-index 1]
+                (if-not (= current-vector-index 12)
+                    ;; Whilst month is December or any month beforehand.  
+                  (if (> (get (nth current-vector (- current-vector-index 1)) (+ current-index 1)) (get (nth warmest-temp (- current-vector-index 1)) (first (keys (nth warmest-temp (- current-vector-index 1))))))
+                      ;; If the current value in the vector is greater than the old value then replace.
+                    (recur (replace-value warmest-temp (- current-vector-index 1) (nth current-vector (- current-vector-index 1))) (+ current-vector-index 1))
+                      ;; Else do not replace & increase counter.
+                    (recur warmest-temp (+ current-vector-index 1)))
+                  warmest-temp))))
+      (map (fn [month-day] (mod-month-day month-day)) warmest-temp))))
 
 (defn slurp-1772-file
   "Slurps the 1772toDate.txt file line by line."
   []
-  (println "Warmest Day for Each Calender Month: " (read-by-line "src/assignment/test.txt")))
+  (let [line-data (read-by-line "src/assignment/test.txt")]
+    (println "Warmest Day for Each Calender Month: " (find-warmest-and-coldest-day-for-each-month line-data))
+    (find-warmest-and-coldest-years line-data)
+    (find-mean-for-each-month-and-variations-from-mean line-data)
+  ))
 
 (defn initialise-cet-solution 
   "Initialise the solution. Slurp the respective text files."
