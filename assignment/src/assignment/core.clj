@@ -110,10 +110,6 @@
           (apply str(map translate-character-to-morse character-vector)))))
   (str "Invalid Input. Only valid A-Z,a-z,0-9 characters OR . - characters valid.")))
 
-;; EXAMPLE STRINGS:
-;; Hello World
-;; ....   .   .-..   .-..   ---       .--   ---   .-.   .-..   -..
-
 (defn request-string-to-convert 
   "Accepts user input & calls conversion method. Invokes [[string-to-morse]]."
   []
@@ -128,9 +124,14 @@
 ;; /****************************************************************************************/
 
 (s/def ::data-number int?)
+(s/def ::data-lazy-seq seq?)
+(s/def ::data-float float?)
+(s/def ::data-map map?)
+(s/def ::data-lazy-seq seq?)
+(s/def ::data-float float?)
+(s/def ::data-string string?)
 (s/def ::does-file-exist #(.exists (io/file %)))
 (s/def ::is-file-valid ::does-file-exist)
-
 
 (def months-map
   "Define each month to a value."
@@ -150,7 +151,8 @@
 (defn update-current-map
   "Updates the current daily map key and then the value of the KVP."
   [mapped-month mapped-month-day current-day current-temperature]
-  {:pre [s/valid? ::data-number mapped-month s/valid? ::data-number mapped-month-day ::data-number current-day ::data-number current-temperature]}
+  {:pre [s/valid? ::data-number mapped-month s/valid? ::data-number mapped-month-day ::data-number current-day ::data-number current-temperature]
+   :post [s/valid? ::data-map %]}
   (let [updatedMap (cljSet/rename-keys mapped-month {mapped-month-day, current-day})]
     (assoc updatedMap current-day current-temperature)))
 
@@ -169,6 +171,10 @@
              (update-current-map mapped-month mapped-month-day current-day current-temperature))
            mapped-month))))
 
+;; First the map to obtain the first K:V pair as a vector of [K:V] 
+;; Get the second element of that, the Value.
+;; Takes first item from the collection, then the second item from the result of that.
+;; Thread-last macro takes a value & passes it as the last argument to the next function in the chain.
 (defn process-year-data
   "Given a vector of Hashmaps, only retrieve the mapped values."
   [yearly-data]
@@ -180,35 +186,40 @@
  "Adds the current index values together and maps these together.
   Parameters: data - Sequence containing indexed value of every month for that year."
   [data]
-  {:pre [s/valid? ::data-number data]}
+  {:pre [s/valid? ::data-number data]
+   :post [s/valid? ::data-lazy-seq %]}
   (apply (partial map (fn [& nums] (apply + nums))) data))
 
 (defn conj-index
   "Conjoins all the indexed values into one list. (All first indexes together, all seconds together etc.)
    Parameters: data - Sequence containing the mean values of each month per year."
   [data]
-  {:pre [s/valid? ::data-number data]}
+  {:pre [s/valid? ::data-number data]
+   :post [s/valid? ::data-lazy-seq %]}
   (apply (partial map (fn [& nums] (conj nums))) data))
 
 (defn divide-number-month
   "Divides the current number by 31 & parse to float.
    Parameters: number - The number to be divided."
   [number]
-  {:pre [s/valid? ::data-number number]}
+  {:pre [s/valid? ::data-number number]
+   :post [s/valid? ::data-float %]}
   (float (/ number 31)))
 
 (defn divide-number-year
   "Divides the current number by 12 & parse to float.
    Parameters: number - The number to be divided."
   [number]
-  {:pre [s/valid? ::data-number number]}
+  {:pre [s/valid? ::data-number number]
+   :post [s/valid? ::data-float %]}
   (float (/ number 12)))
 
 (defn divide-number-var
   "Divides the current number by another & parse to float.
    Parameters: number - The number to be divided."
   [number divide-by]
-  {:pre [s/valid? ::data-number number s/valid? ::data-number divide-by]}
+  {:pre [s/valid? ::data-number number s/valid? ::data-number divide-by]
+   :post [s/valid? ::data-float %]}
   (float (/ number divide-by)))
 
 
@@ -220,6 +231,8 @@
    Parameters: data - The current month and all the average values for all years.
    mean-data-list - The current mean for ALL of that month."
   [data mean-data-list]
+  {:pre [s/valid? ::data-lazy-seq data s/valid? ::data-float mean-data-list]
+   :post [s/valid? ::data-string %]}
   (let [max-month-average (apply min data)]
     (let [max-month-index (.indexOf data (apply min data))]
       (let [closest-variation-to-mean (apply min-key #(Math/abs (- % mean-data-list)) data)]
@@ -231,10 +244,12 @@
   "Mods the current Hashmap value by 31 so that a correct day is returned.
    Parameters: data - The hashmap containing the day & temperature."
   [data]
+  {:pre [s/valid? ::data-map data]
+   :post [s/valid? ::data-map %]}
   {(mod (Integer/parseInt (subs (str (keys data)) 1 (- (count (str (keys data))) 1))) 31) (get data (Integer/parseInt (subs (str (keys data)) 1 (- (count (str (keys data))) 1))))})
 
 (defn set-data
-  "DOING"
+  "Sets the current day & increments values."
   [current-pos current-value]
   ;; (if (= current-pos 1)
   ;;   ;; Year Column
@@ -257,7 +272,7 @@
   (into (apply-current-month-to-data @current-day current-pos (Integer/parseInt (apply str current-value))) (seq [(- current-pos 2)])))
 
 (defn check-line-data-1772
-  "Obtains data from the line.
+  "Obtains data from the line, looping through each value.
    Parameters: current-line - The current line that the reader has parsed."
   [current-line]
   (loop [current-pos 1 number-line current-line daily-values-vector []]
@@ -288,12 +303,12 @@
   "Finds the mean value for each month & smallest/greatest variation from that mean value."
   [line-data]
   (let [divisor-days (* 31 (count (map add-index (partition 31 (map process-year-data line-data)))))]
-    (let [test1 (map (fn [num] (divide-number-var num divisor-days)) (add-index (map add-index (partition 31 (map process-year-data line-data)))))]
+    (let [days-data (map (fn [num] (divide-number-var num divisor-days)) (add-index (map add-index (partition 31 (map process-year-data line-data)))))]
       (let [divisor-years (count (map add-index (partition 31 (map process-year-data line-data))))]
-        (let [test2 (map (fn [num] (divide-number-var num divisor-years)) test1)]
-          (println "Mean Temperature for Each Calender Month (All of that month):" test2)
-          (let [test3 (map conj-index (partition (count (map add-index (partition 31 (map process-year-data line-data)))) (partition 12 (map (fn [num] (divide-number-month num)) (flatten (map add-index (partition 31 (map process-year-data line-data))))))))]
-            (println "Variations: \n" (map (fn [month-average test2] (get-variations month-average test2)) (partition (count (map add-index (partition 31 (map process-year-data line-data)))) (flatten test3)) test2))))))))
+        (let [years-data (map (fn [num] (divide-number-var num divisor-years)) days-data)]
+          (println "Mean Temperature for Each Calender Month (All of that month):" years-data)
+          (let [variation-data (map conj-index (partition (count (map add-index (partition 31 (map process-year-data line-data)))) (partition 12 (map (fn [num] (divide-number-month num)) (flatten (map add-index (partition 31 (map process-year-data line-data))))))))]
+            (println "Variations: \n" (map (fn [month-average years-data] (get-variations month-average years-data)) (partition (count (map add-index (partition 31 (map process-year-data line-data)))) (flatten variation-data)) years-data))))))))
 
 
 ;; Reference: https://stackoverflow.com/questions/40370240/easy-way-to-change-specific-list-item-in-list
@@ -332,7 +347,7 @@
 
 ;; 1.	Find the warmest day for each calendar month (e.g. the warmest January day, warmest February day and so on) .
 (defn find-warmest-and-coldest-day-for-each-month
-  "TODO"
+  "Recurs through each line of data - Replaces the old value with the newer is newTemperature > oldTemperature."
   [line-data]
   (loop [current-index 1 warmest-temp (drop 2 (nth line-data (- current-index 1)))]
     (if-not (= current-index (count line-data))
@@ -355,14 +370,14 @@
 (defn slurp-1772-file
   "Slurps the 1772toDate.txt file line by line."
   []
-  (let [line-data (read-by-line "src/assignment/test.txt")]
+  (let [line-data (read-by-line "src/assignment/1772toDate.txt")]
     (println "Warmest Day for Each Calender Month: " (find-warmest-and-coldest-day-for-each-month line-data))
     (find-warmest-and-coldest-years line-data)
     (find-mean-for-each-month-and-variations-from-mean line-data)
   ))
 
 (defn initialise-cet-solution 
-  "Initialise the solution. Slurp the respective text files."
+  "Initialise the solution. Slurp the respective text file."
   []
   (slurp-1772-file))
 
@@ -374,13 +389,15 @@
             Enter '2' for the CET solution.")
   (flush)
   (let [userInput (Integer/parseInt (read-line))]
+    (if (not (s/valid? ::data-number userInput))
+      (println "Only numbers are permitted as input.")
       (cond (= 1 userInput)
             (request-string-to-convert)
             (= 2 userInput)
             (initialise-cet-solution)
             :else
             (println "Unnacepted Request.")
-            )))
+            ))))
         
 
 (defn -main 

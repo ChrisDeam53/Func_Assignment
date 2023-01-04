@@ -5,6 +5,7 @@
 
 (require '[clojure.spec.alpha :as s])
 (require '[clojure.java.io :as io])
+
 ;; /***********************************************************************************************************************/
 ;; ASCII->Morse & Morse->ASCII Unit Tests.
 ;; /***********************************************************************************************************************/
@@ -24,7 +25,8 @@
   (testing "Test that spec works with ascii.")
   (is (s/valid? ::string-input-validation "Hello World"))
   (is (s/valid? ::string-input-validation "abcdefghijklmnopqrstuvwxyz 1234567890"))
-  (is (not (s/valid? ::string-input-validation "[]@#;<>]"))))
+  (is (not (s/valid? ::string-input-validation "[]@#;<>]")))
+  (is (not (s/valid? ::string-input-validation "Hello World []"))))
 
 ;; Test that a-z & 0-9 works.
 (deftest get-character-test
@@ -49,8 +51,6 @@
   (is (= (translate-character-to-morse "A") ".-   "))
   (is (= (translate-character-to-morse "B") "-...   ")))
 
-
-
 ;; /***********************************************************************************************************************/
 ;; CET Unit Tests.
 ;; NOTE: Some methods are *not* tested as they contain pure Clojure functions. Therefore it would be pointless to test.
@@ -62,7 +62,8 @@
 
 (deftest check-file-is-valid-test
   (testing "Ensures that the test passes if the file exists and is correct")
-   (is (s/valid? ::is-file-valid "src/assignment/1772toDate.txt")))
+  (is (s/valid? ::is-file-valid "src/assignment/1772toDate.txt"))
+  (is (not (s/valid? ::is-file-valid "src/assignment/non-existent-file.txt"))))
 
 (deftest is-number-test
   (testing "Ensures that the integer check in spec works.")
@@ -90,8 +91,8 @@
 
 (deftest check-line-data-1772-test
   (testing "Ensure correct vector is returned when passed in a line of data from the .txt file.")
-  (is (= (check-line-data-1772 '(1772 1 32 -15 18 25 87 128 187 177 105 111 78 112))) [-1 0 {1 32} {1 -15} {1 18} {1 25} {1 87} {1 128} {1 187} {1 177} {1 105} {1 111} {1 78} {1 112}])
-  (is (= (check-line-data-1772 '(1773 31 -5 -999 54 -999 163 -999 152 160 -999 44 -999 -17))) [-1 0 {62 -5} {62 -999} {62 54} {62 -999} {62 163} {62 -999} {62 152} {62 160} {62 -999} {62 44} {62 -999} {62 -17}]))
+  (is (= (check-line-data-1772 '(1772 1 32 -15 18 25 87 128 187 177 105 111 78 112)) [-1 0 {1 32} {1 -15} {1 18} {1 25} {1 87} {1 128} {1 187} {1 177} {1 105} {1 111} {1 78} {1 112}]))
+  (is (= (check-line-data-1772 '(1773 31 -5 -999 54 -999 163 -999 152 160 -999 44 -999 -17)) [-1 0 {2 -5} {2 -999} {2 54} {2 -999} {2 163} {2 -999} {2 152} {2 160} {2 -999} {2 44} {2 -999} {2 -17}])))
 
 (deftest mod-month-day-test
   (testing "Ensure correct modulo operation is taking place.")
